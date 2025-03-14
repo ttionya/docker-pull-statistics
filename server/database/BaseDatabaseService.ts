@@ -11,7 +11,7 @@ export default class BaseDatabaseService<T> {
     this.tableName = tableName
   }
 
-  protected execute<R>(callback: (db: DBInstance) => R): R {
+  execute<R>(callback: (db: DBInstance) => R): R {
     const existingConnection = transactionStorage.getStore()
 
     if (existingConnection) {
@@ -27,7 +27,7 @@ export default class BaseDatabaseService<T> {
     }
   }
 
-  protected transaction<R>(callback: (db: DBInstance) => R): R {
+  transaction<R>(callback: (db: DBInstance) => R): R {
     const db = getDatabase()
 
     return transactionStorage.run(db, () => {

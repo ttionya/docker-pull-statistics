@@ -1,8 +1,8 @@
 import fs from 'fs-extra'
-import { getDatabase } from '~~/server/utils/db'
-import type { DBRepositories } from '~~/server/types/db'
+import { RepositoriesService } from '~~/server/database/RepositoriesService'
+import { PullStatisticsService } from '~~/server/database/PullStatisticsService'
 
-async function importCSV() {
+function importCSV() {
   const args = process.argv.slice(2)
 
   if (args.length < 2) {
@@ -10,108 +10,89 @@ async function importCSV() {
     process.exit(1)
   }
 
-  const CSV_PATH = args[0] as string
-  const repoName = args[1] as string
+  const csvPath = args[0] as string
+  const name = args[1] as string
 
-  // Split the full repository name
-  const [NAMESPACE, REPOSITORY] = repoName.split('/')
+  const [namespace, repository] = name.split('/')
 
-  if (!NAMESPACE || !REPOSITORY) {
+  if (!namespace || !repository) {
     console.error('Invalid repository name. Should be in format "namespace/repository"')
     process.exit(1)
   }
 
   // Verify CSV file exists
-  if (!fs.existsSync(CSV_PATH)) {
-    console.error(`CSV file not found: ${CSV_PATH}`)
+  if (!fs.existsSync(csvPath)) {
+    console.error(`CSV file not found: ${csvPath}`)
     process.exit(1)
   }
 
-  const db = getDatabase()
-
   try {
-    console.log(`Starting import for ${repoName}...`)
+    console.log(`Starting import for ${name}...`)
 
-    db.exec('BEGIN TRANSACTION')
+    const repositoriesService = new RepositoriesService()
+    const statisticsService = new PullStatisticsService()
 
-    const repo = db
-      .prepare('SELECT id FROM repositories WHERE name = ?')
-      .get(repoName) as DBRepositories
+    repositoriesService.transaction(() => {
+      // Find or create repository
+      const existing = repositoriesService.findByName(name)
+      let repositoryId: number
 
-    let repositoryId: number
-
-    if (!repo) {
-      console.log('Repository not found, creating it...')
-      const result = db
-        .prepare('INSERT INTO repositories (namespace, repository, name) VALUES (?, ?, ?)')
-        .run(NAMESPACE, REPOSITORY, repoName)
-
-      repositoryId = result.lastInsertRowid as number
-      console.log(`Created repository with ID: ${repositoryId}`)
-    } else {
-      repositoryId = repo.id
-      console.log(`Repository found with ID: ${repositoryId}`)
-    }
-
-    // Read CSV file
-    const fileContent = fs.readFileSync(CSV_PATH, 'utf8')
-    const lines = fileContent.split('\n').filter((line) => line.trim())
-
-    // Skip header line
-    const dataLines = lines.slice(1)
-    console.log(`Read ${dataLines.length} records from CSV file`)
-
-    // Prepare insert statement
-    const insertStat = db.prepare(
-      'INSERT INTO pull_statistics (repository_id, count, created_at) VALUES (?, ?, ?)'
-    )
-
-    // Process and insert records
-    let inserted = 0
-    let skipped = 0
-
-    for (const line of dataLines) {
-      const [timeStr, countStr] = line.split(',')
-      if (!timeStr || !countStr) {
-        skipped++
-        continue
-      }
-
-      const timestamp = parseInt(timeStr)
-      const count = parseInt(countStr)
-
-      // Validate count is a valid number
-      if (isNaN(count)) {
-        console.log(`Skipping record with invalid count: ${line}`)
-        skipped++
-        continue
-      }
-
-      const date = new Date(timestamp)
-      const minutes = date.getMinutes()
-
-      // Keep only XX:00 and XX:30 entries
-      if (minutes === 0 || minutes === 30) {
-        // Convert to Unix timestamp (seconds)
-        const unixTimestamp = Math.floor(timestamp)
-        insertStat.run(repositoryId, count, unixTimestamp)
-        inserted++
+      if (!existing) {
+        console.log('Repository not found, creating it...')
+        repositoryId = repositoriesService.create(namespace, repository, name)
+        console.log(`Created repository with ID: ${repositoryId}`)
       } else {
-        skipped++
+        repositoryId = existing.id
+        console.log(`Repository found with ID: ${repositoryId}`)
       }
-    }
 
-    // Commit transaction
-    db.exec('COMMIT')
-    console.log(`Successfully imported ${inserted} records, skipped ${skipped} records`)
+      // Read CSV file
+      const fileContent = fs.readFileSync(csvPath, 'utf8')
+      const lines = fileContent.split('\n').filter((line) => line.trim())
+
+      // Skip header line
+      const dataLines = lines.slice(1)
+      console.log(`Read ${dataLines.length} records from CSV file`)
+
+      // Process and insert records
+      let inserted = 0
+      let skipped = 0
+
+      for (const line of dataLines) {
+        const [timeStr, countStr] = line.split(',')
+        if (!timeStr || !countStr) {
+          skipped++
+          continue
+        }
+
+        const timestamp = parseInt(timeStr)
+        const count = parseInt(countStr)
+
+        // Validate count is a valid number
+        if (isNaN(count)) {
+          console.log(`Skipping record with invalid count: ${line}`)
+          skipped++
+          continue
+        }
+
+        const date = new Date(timestamp)
+        const minutes = date.getMinutes()
+
+        // Keep only XX:00 and XX:30 entries
+        if (minutes === 0 || minutes === 30) {
+          statisticsService.create(repositoryId, count, timestamp)
+          inserted++
+        } else {
+          skipped++
+        }
+      }
+
+      console.log(`Successfully imported ${inserted} records, skipped ${skipped} records`)
+    })
   } catch (error) {
-    // Rollback on error
-    db.exec('ROLLBACK')
     console.error('Error during import:', error)
-  } finally {
-    // Close database connection
-    db.close()
+    process.exit(1)
   }
 }
 
-importCSV().catch(console.error)
+importCSV()
