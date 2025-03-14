@@ -1,6 +1,6 @@
 import path from 'path'
 import fs from 'fs-extra'
-import { MigrationService } from '../database/MigrationService'
+import { MigrationService } from '~~/server/database/MigrationService'
 import type { Migration } from '~~/server/types/migration'
 
 export default defineNitroPlugin(async () => {
@@ -8,8 +8,6 @@ export default defineNitroPlugin(async () => {
 
   try {
     await runMigrations()
-
-    console.log('Migrations completed successfully')
   } catch (error) {
     console.error('Failed to run migrations:', error)
   }
@@ -67,4 +65,6 @@ async function runMigrations() {
       throw error
     }
   }
+
+  console.log('Migrations completed successfully')
 }

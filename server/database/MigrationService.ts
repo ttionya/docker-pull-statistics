@@ -47,11 +47,11 @@ export class MigrationService extends BaseDatabaseService<DBMigrations> {
     )
   }
 
-  create(migrationName: string, batch: number): number {
+  create(migrationName: string, batch: number, timestamp = Date.now()): number {
     return this.execute((db) => {
       const result = db
         .prepare('INSERT INTO migrations (migration, batch, created_at) VALUES (?, ?, ?)')
-        .run(migrationName, batch, Date.now())
+        .run(migrationName, batch, timestamp)
 
       return Number(result.lastInsertRowid)
     })

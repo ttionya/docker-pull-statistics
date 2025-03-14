@@ -29,7 +29,7 @@ export class PullStatisticsService extends BaseDatabaseService<DBPullStatistics>
     })
   }
 
-  create(repositoryId: number, count: number, timestamp: number): number {
+  create(repositoryId: number, count: number, timestamp = Date.now()): number {
     return this.execute((db) => {
       const result = db
         .prepare('INSERT INTO pull_statistics (repository_id, count, created_at) VALUES (?, ?, ?)')

@@ -13,13 +13,13 @@ export class RepositoriesService extends BaseDatabaseService<DBRepositories> {
     )
   }
 
-  create(namespace: string, repository: string, name: string): number {
+  create(namespace: string, repository: string, name: string, timestamp = Date.now()): number {
     return this.execute((db) => {
       const result = db
         .prepare(
           'INSERT INTO repositories (namespace, repository, name, created_at) VALUES (?, ?, ?, ?)'
         )
-        .run(namespace, repository, name, Date.now())
+        .run(namespace, repository, name, timestamp)
 
       return Number(result.lastInsertRowid)
     })
