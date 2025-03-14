@@ -9,15 +9,13 @@ export default {
         created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
         UNIQUE(namespace, repository)
       );
-
-      CREATE INDEX idx_repositories_name ON repositories(name);
     `)
+
+    db.exec(`CREATE INDEX idx_repositories_name ON repositories(name);`)
   },
 
   down(db) {
-    db.exec(`
-      DROP INDEX IF EXISTS idx_repositories_name;
-      DROP TABLE IF EXISTS repositories;
-    `)
+    db.exec(`DROP INDEX IF EXISTS idx_repositories_name;`)
+    db.exec(`DROP TABLE IF EXISTS repositories;`)
   },
 }

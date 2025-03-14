@@ -7,19 +7,19 @@ export default {
         count INTEGER NOT NULL,
         created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
       );
-
-      CREATE INDEX idx_pull_statistics_repository_id ON pull_statistics(repository_id);
-      CREATE INDEX idx_pull_statistics_created_at ON pull_statistics(created_at);
-      CREATE INDEX idx_pull_statistics_repo_time ON pull_statistics(repository_id, created_at);
     `)
+
+    db.exec(`CREATE INDEX idx_pull_statistics_repository_id ON pull_statistics(repository_id);`)
+    db.exec(`CREATE INDEX idx_pull_statistics_created_at ON pull_statistics(created_at);`)
+    db.exec(
+      `CREATE INDEX idx_pull_statistics_repo_time ON pull_statistics(repository_id, created_at);`
+    )
   },
 
   down(db) {
-    db.exec(`
-      DROP INDEX IF EXISTS idx_pull_statistics_repo_time;
-      DROP INDEX IF EXISTS idx_pull_statistics_created_at;
-      DROP INDEX IF EXISTS idx_pull_statistics_repository_id;
-      DROP TABLE IF EXISTS pull_statistics;
-    `)
+    db.exec(`DROP INDEX IF EXISTS idx_pull_statistics_repo_time;`)
+    db.exec(`DROP INDEX IF EXISTS idx_pull_statistics_created_at;`)
+    db.exec(`DROP INDEX IF EXISTS idx_pull_statistics_repository_id;`)
+    db.exec(`DROP TABLE IF EXISTS pull_statistics;`)
   },
 }
