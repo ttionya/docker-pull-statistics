@@ -25,3 +25,6 @@ logs
 
 # Database
 /data
+
+# CSV
+*.csv
