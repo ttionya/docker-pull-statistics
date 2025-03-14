@@ -11,11 +11,18 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@element-plus/icons-vue": "^2.3.1",
+    "@element-plus/nuxt": "^1.1.1",
     "@nuxt/eslint": "1.2.0",
     "@ttionya/prettier-config": "^2.1.0",
     "@types/better-sqlite3": "^7.6.12",
     "@types/fs-extra": "^11.0.4",
+    "@vueuse/core": "^13.0.0",
+    "@vueuse/nuxt": "^13.0.0",
     "better-sqlite3": "^11.8.1",
+    "dayjs": "^1.11.13",
+    "echarts": "^5.6.0",
+    "element-plus": "^2.9.6",
     "eslint": "^9.0.0",
     "fs-extra": "^11.3.0",
     "husky": "^9.1.7",
@@ -23,6 +30,7 @@
     "nuxt": "^3.16.0",
     "nuxt-cron": "^1.8.0",
     "prettier": "^3.5.3",
+    "sass": "^1.85.1",
     "typescript": "^5.8.2",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"
