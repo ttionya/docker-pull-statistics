@@ -2,7 +2,7 @@ import path from 'path'
 import fs from 'fs-extra'
 import { getDatabase } from './db'
 import type { Database } from 'better-sqlite3'
-import type { DBMigrations } from '../types/db'
+import type { DBMigrations } from '~~/server/types/db'
 
 export interface Migration {
   up: (db: Database) => Promise<void> | void

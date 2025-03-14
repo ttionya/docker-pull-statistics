@@ -2,7 +2,7 @@
 /// <reference path="../../.nuxt/types/nuxt-cron.d.ts" />
 import { defineCronHandler } from '#nuxt/cron'
 import { getDatabase } from '../utils/db'
-import type { DBRepositories } from '../types/db'
+import type { DBRepositories } from '~~/server/types/db'
 
 export default defineCronHandler(
   () => '0,30 * * * *',
