@@ -1,5 +1,5 @@
 {
-  "name": "docker-pull-stat",
+  "name": "docker-pull-statistics",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,18 +13,25 @@
   "dependencies": {
     "@nuxt/eslint": "1.2.0",
     "@ttionya/prettier-config": "^2.1.0",
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/fs-extra": "^11.0.4",
+    "better-sqlite3": "^11.8.1",
     "eslint": "^9.0.0",
+    "fs-extra": "^11.3.0",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.0",
     "nuxt": "^3.16.0",
     "prettier": "^3.5.3",
+    "typescript": "^5.8.2",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
       "@parcel/watcher",
-      "esbuild"
+      "better-sqlite3",
+      "esbuild",
+      "vue-demi"
     ]
   }
 }
