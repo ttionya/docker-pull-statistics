@@ -21,7 +21,7 @@
     </div>
 
     <div v-loading="loading" class="chart-container">
-      <div id="chart" ref="chartRef" style="width: 100%; height: 500px" />
+      <div id="chart" ref="chartRef" :style="`width: 100%; height: ${chartHeight}px`" />
     </div>
   </div>
 </template>
@@ -32,14 +32,16 @@ import { useEventListener } from '@vueuse/core'
 
 const route = useRoute()
 const repositoryName = decodeURIComponent(route.params.repo as string)
+const chartHeight = ref(0)
 const dimension = ref('day')
 const dateRange = ref<[Date, Date] | []>([])
-const chartRef = ref<HTMLElement | null>(null)
-const chart = ref<echarts.ECharts | null>(null)
 const loading = ref(false)
 const timezoneOffset = new Date().getTimezoneOffset()
+const chartRef = ref<HTMLElement | null>(null)
+let chart: echarts.ECharts | null = null
 
 onMounted(() => {
+  updateChartHeight()
   initChart()
   loadData()
 })
@@ -50,12 +52,12 @@ watch([dimension, dateRange], () => {
 
 function initChart() {
   if (chartRef.value) {
-    chart.value = echarts.init(chartRef.value)
+    chart = echarts.init(chartRef.value)
   }
 }
 
 async function loadData() {
-  if (!chart.value || !dateRange.value) return
+  if (!chart || !dateRange.value) return
 
   loading.value = true
 
@@ -84,7 +86,7 @@ async function loadData() {
 }
 
 function updateChart(data: { time: string; count: number; delta: number }[]) {
-  if (!chart.value) return
+  if (!chart) return
 
   const times = data.map((item) => item.time)
   const counts = data.map((item) => item.count)
@@ -108,12 +110,12 @@ function updateChart(data: { time: string; count: number; delta: number }[]) {
     grid: {
       left: '3%',
       right: '4%',
-      bottom: '13%',
+      bottom: '60px',
       containLabel: true,
     },
     xAxis: {
-      // type: 'category',
-      // boundaryGap: false,
+      type: 'category',
+      boundaryGap: false,
       data: times,
     },
     yAxis: [
@@ -155,28 +157,32 @@ function updateChart(data: { time: string; count: number; delta: number }[]) {
     ],
   }
 
-  chart.value.setOption(option)
+  chart.setOption(option)
+  chart?.resize()
 }
 
 function goBack() {
   navigateTo('/')
 }
 
+function updateChartHeight() {
+  chartHeight.value = window.innerHeight - 200
+}
+
 // Handle resize
 useEventListener('resize', () => {
-  chart.value?.resize()
+  updateChartHeight()
+  chart?.resize()
 })
 
 // Cleanup
 onUnmounted(() => {
-  chart.value?.dispose()
+  chart?.dispose()
 })
 </script>
 
 <style scoped>
 .stats-container {
-  max-width: 1200px;
-  margin: 0 auto;
   padding: 20px;
 }
 
