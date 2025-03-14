@@ -6,10 +6,16 @@ export default defineNuxtConfig({
     enabled: true,
   },
 
-  modules: ['@nuxt/eslint'],
+  modules: ['@nuxt/eslint', 'nuxt-cron'],
 
   future: {
     compatibilityVersion: 4,
   },
   compatibilityDate: '2024-11-01',
+
+  cron: {
+    runOnInit: true,
+    timeZone: 'UTC',
+    jobsDir: 'cron',
+  },
 })

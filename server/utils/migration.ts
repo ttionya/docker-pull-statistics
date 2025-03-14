@@ -2,18 +2,11 @@ import path from 'path'
 import fs from 'fs-extra'
 import { getDatabase } from './db'
 import type { Database } from 'better-sqlite3'
+import type { DBMigrations } from '../types/db'
 
 export interface Migration {
   up: (db: Database) => Promise<void> | void
   down?: (db: Database) => Promise<void> | void
-}
-
-interface MigrationRecord {
-  migration: string
-}
-
-interface BatchResult {
-  batch: number | null
 }
 
 export async function runMigrations() {
@@ -24,7 +17,7 @@ export async function runMigrations() {
 
     // Get completed migrations
     const completedMigrations = (
-      db.prepare('SELECT migration FROM migrations').all() as MigrationRecord[]
+      db.prepare('SELECT migration FROM migrations').all() as DBMigrations[]
     ).map((m) => m.migration)
 
     // Get migration files
@@ -49,7 +42,7 @@ export async function runMigrations() {
     // Get current batch number
     const batchResult = db
       .prepare('SELECT MAX(batch) as batch FROM migrations')
-      .get() as BatchResult
+      .get() as DBMigrations
     const batch = (batchResult?.batch || 0) + 1
 
     // Run pending migrations
