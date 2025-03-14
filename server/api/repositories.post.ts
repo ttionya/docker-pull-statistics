@@ -1,4 +1,4 @@
-import { getDatabase } from '../utils/db'
+import { RepositoriesService } from '~~/server/database/RepositoriesService'
 
 export default defineEventHandler(async (event) => {
   const token = getHeader(event, 'authorization')?.replace('Bearer ', '') || ''
@@ -30,31 +30,22 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const db = getDatabase()
+  const repositoriesService = new RepositoriesService()
+  const existing = repositoriesService.findByName(name)
 
-  try {
-    const existing = db
-      .prepare('SELECT id FROM repositories WHERE namespace = ? AND repository = ?')
-      .get(namespace, repository)
+  if (existing) {
+    throw createError({
+      statusCode: 409,
+      message: `Repository ${name} already exists`,
+    })
+  }
 
-    if (existing) {
-      throw createError({
-        statusCode: 409,
-        message: `Repository ${name} already exists`,
-      })
-    }
+  const id = repositoriesService.create(namespace, repository, name)
 
-    const result = db
-      .prepare('INSERT INTO repositories (namespace, repository, name) VALUES (?, ?, ?)')
-      .run(namespace, repository, name)
-
-    return {
-      id: result.lastInsertRowid,
-      namespace,
-      repository,
-      name,
-    }
-  } finally {
-    db.close()
+  return {
+    id,
+    namespace,
+    repository,
+    name,
   }
 })

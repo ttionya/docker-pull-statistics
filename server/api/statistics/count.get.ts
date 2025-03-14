@@ -1,13 +1,13 @@
-import { getDatabase } from '../../utils/db'
-import type { DBRepositories, DBPullStatistics } from '~~/server/types/db'
+import { RepositoriesService } from '~~/server/database/RepositoriesService'
+import { PullStatisticsService } from '~~/server/database/PullStatisticsService'
+import type { DBPullStatistics } from '~~/server/types/db'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const repository = query.repository as string
-  const fromTimestamp = query.from ? Number(query.from) : null
-  const toTimestamp = query.to ? Number(query.to) : Date.now()
   const dimension = (query.dimension as string) || 'day'
-  const timezoneOffset = query.timezone ? Number(query.timezone) : 0
+  const { fromTimestamp, toTimestamp } = formatTimestamp(query.from, query.to)
+  const timezoneOffset = Number(query.timezone) || 0
 
   if (!repository) {
     throw createError({
@@ -23,59 +23,35 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const db = getDatabase()
+  const queryRepository = new RepositoriesService().findByName(repository)
 
-  try {
-    const repoRecord = db
-      .prepare('SELECT id FROM repositories WHERE name = ?')
-      .get(repository) as Pick<DBRepositories, 'id'>
-
-    if (!repoRecord) {
-      return { data: [] }
-    }
-
-    const repositoryId = repoRecord.id
-
-    // Get all records for this repository in the time range
-    let query = 'SELECT created_at, count FROM pull_statistics WHERE repository_id = ?'
-    const params: unknown[] = [repositoryId]
-
-    if (fromTimestamp) {
-      query += ' AND created_at >= ?'
-      params.push(fromTimestamp)
-    }
-
-    if (toTimestamp) {
-      query += ' AND created_at <= ?'
-      params.push(toTimestamp)
-    }
-
-    query += ' ORDER BY created_at ASC'
-
-    const records = db.prepare(query).all(...params) as Pick<
-      DBPullStatistics,
-      'count' | 'created_at'
-    >[]
-
-    if (records.length === 0) {
-      return { data: [] }
-    }
-
-    // Generate time points based on dimension
-    const timePoints = generateTimePoints(
-      records[0].created_at,
-      toTimestamp,
-      dimension,
-      timezoneOffset
-    )
-
-    // Map records to the generated time points
-    const result = mapRecordsToTimePoints(timePoints, records, dimension, timezoneOffset)
-
-    return { data: result }
-  } finally {
-    db.close()
+  if (!queryRepository) {
+    return { data: [] }
   }
+
+  // Get statistics records
+  const records = new PullStatisticsService().findInTimeRange(
+    queryRepository.id,
+    fromTimestamp,
+    toTimestamp
+  )
+
+  if (records.length === 0) {
+    return { data: [] }
+  }
+
+  // Generate time points based on dimension
+  const timePoints = generateTimePoints(
+    records[0].created_at,
+    toTimestamp,
+    dimension,
+    timezoneOffset
+  )
+
+  // Map records to the generated time points
+  const result = mapRecordsToTimePoints(timePoints, records, dimension, timezoneOffset)
+
+  return { data: result }
 })
 
 function generateTimePoints(
@@ -89,7 +65,6 @@ function generateTimePoints(
   const timePoints: Date[] = []
 
   if (dimension === 'month') {
-    // Set to first day of month
     startDate.setDate(1)
     startDate.setHours(0, 0, 0, 0)
 
@@ -99,7 +74,6 @@ function generateTimePoints(
       currentDate.setMonth(currentDate.getMonth() + 1)
     }
   } else if (dimension === 'day') {
-    // Set to midnight
     startDate.setHours(0, 0, 0, 0)
 
     const currentDate = new Date(startDate)
@@ -108,15 +82,12 @@ function generateTimePoints(
       currentDate.setDate(currentDate.getDate() + 1)
     }
   } else {
-    // hour
-    // Round to nearest half hour
     const minutes = startDate.getMinutes()
     startDate.setMinutes(minutes < 30 ? 0 : 30, 0, 0)
 
     const currentDate = new Date(startDate)
     while (currentDate <= endDate) {
       timePoints.push(new Date(currentDate))
-      // Add 30 minutes
       currentDate.setMinutes(currentDate.getMinutes() + 30)
     }
   }
@@ -134,7 +105,6 @@ function formatTimePoint(date: Date, dimension: string): string {
     const day = String(date.getDate()).padStart(2, '0')
     return `${year}-${month}-${day}`
   } else {
-    // hour
     const day = String(date.getDate()).padStart(2, '0')
     const hour = String(date.getHours()).padStart(2, '0')
     const minute = String(date.getMinutes()).padStart(2, '0')
@@ -144,7 +114,7 @@ function formatTimePoint(date: Date, dimension: string): string {
 
 function mapRecordsToTimePoints(
   timePoints: Date[],
-  records: { created_at: number; count: number }[],
+  records: DBPullStatistics[],
   dimension: string,
   timezoneOffset: number
 ) {
@@ -155,7 +125,6 @@ function mapRecordsToTimePoints(
     const timePoint = timePoints[i]
     const timePointTimestamp = timePoint.getTime() - timezoneOffset * 60 * 1000
 
-    // Find the latest record before this time point
     let matchingRecord = null
     for (let j = records.length - 1; j >= 0; j--) {
       if (records[j].created_at <= timePointTimestamp) {
@@ -164,10 +133,8 @@ function mapRecordsToTimePoints(
       }
     }
 
-    // If no matching record found, use the last known count
     const count = (matchingRecord ? matchingRecord.count : lastCount) as number
 
-    // Only add to result if we have a count
     if (count !== null) {
       const prevItem = result.length > 0 ? result[result.length - 1] : null
       const delta = prevItem ? count - prevItem.count : 0
@@ -183,4 +150,13 @@ function mapRecordsToTimePoints(
   }
 
   return result
+}
+
+function formatTimestamp(from: unknown, to: unknown) {
+  const currentTime = Date.now()
+  const fromTimestamp = Number(from) > 0 && Number(from) <= currentTime ? Number(from) : 0
+  const toTimestamp =
+    Number(to) > fromTimestamp && Number(to) <= currentTime ? Number(to) : currentTime
+
+  return { fromTimestamp, toTimestamp }
 }
