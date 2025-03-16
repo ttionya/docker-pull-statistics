@@ -1,0 +1,12 @@
+services:
+  app:
+    image: docker-pull-statistics:latest
+    container_name: docker-pull-statistics-app
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./data:/app/data
