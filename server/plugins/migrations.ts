@@ -1,5 +1,6 @@
 import path from 'path'
 import fs from 'fs-extra'
+import { useRuntimeConfig } from '#imports'
 import { MigrationService } from '~~/server/database/MigrationService'
 import type { Migration } from '~~/server/types/migration'
 
@@ -23,7 +24,7 @@ async function runMigrations() {
   const completedMigrations = migrationService.findAll().map((row) => row.migration)
 
   // Get migration files
-  const migrationsDir = path.join(process.cwd(), 'server', 'migrations')
+  const migrationsDir = useRuntimeConfig().migrationsDir
   const migrationFiles = fs
     .readdirSync(migrationsDir)
     .filter((file) => file.endsWith('.js'))

@@ -16,6 +16,7 @@ EXPOSE 3000
 WORKDIR /app
 
 COPY --from=build /app/.output /app/.output
+COPY --from=build /app/migrations /app/migrations
 COPY --from=build /app/package.json /app/
 
 CMD ["node", ".output/server/index.mjs"]
