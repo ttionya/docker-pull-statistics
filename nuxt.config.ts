@@ -1,3 +1,5 @@
+import path from 'path'
+import fs from 'fs-extra'
 import { defineNuxtConfig } from 'nuxt/config'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
@@ -13,10 +15,17 @@ export default defineNuxtConfig({
   },
   compatibilityDate: '2024-11-01',
 
-  cron: {
-    runOnInit: false,
-    timeZone: 'UTC',
-    jobsDir: 'cron',
+  runtimeConfig: {
+    dbPath: path.join(process.cwd(), 'data/database.sqlite3'),
+  },
+
+  hooks: {
+    'nitro:build:public-assets': (nitro) => {
+      fs.copySync(
+        path.join(nitro.options.srcDir, 'migrations'),
+        path.join(nitro.options.output.serverDir, 'migrations')
+      )
+    },
   },
 
   vite: {
@@ -28,6 +37,12 @@ export default defineNuxtConfig({
         },
       },
     },
+  },
+
+  cron: {
+    runOnInit: false,
+    timeZone: 'UTC',
+    jobsDir: 'cron',
   },
 
   elementPlus: {

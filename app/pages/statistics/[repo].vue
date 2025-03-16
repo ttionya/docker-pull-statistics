@@ -11,13 +11,15 @@
         <el-radio-button value="month">Monthly</el-radio-button>
       </el-radio-group>
 
-      <el-date-picker
-        v-model="dateRange"
-        type="daterange"
-        range-separator="To"
-        start-placeholder="Start date"
-        end-placeholder="End date"
-      />
+      <div style="width: 450px; margin-left: 10px">
+        <el-date-picker
+          v-model="dateRange"
+          type="daterange"
+          range-separator="To"
+          start-placeholder="Start date"
+          end-placeholder="End date"
+        />
+      </div>
     </div>
 
     <div v-loading="loading" class="chart-container">
@@ -192,7 +194,6 @@ onUnmounted(() => {
 
 .chart-controls {
   display: flex;
-  justify-content: space-between;
   margin-bottom: 24px;
 }
 
