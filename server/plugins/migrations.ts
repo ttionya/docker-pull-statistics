@@ -1,8 +1,10 @@
 import path from 'path'
 import fs from 'fs-extra'
-import { useRuntimeConfig } from '#imports'
+import { packageDirectorySync } from 'pkg-dir'
 import { MigrationService } from '~~/server/database/MigrationService'
 import type { Migration } from '~~/server/types/migration'
+
+const migrationsDir = path.join(packageDirectorySync({ cwd: import.meta.url })!, 'migrations')
 
 export default defineNitroPlugin(async () => {
   console.log('Running database migrations on server startup...')
@@ -24,7 +26,6 @@ async function runMigrations() {
   const completedMigrations = migrationService.findAll().map((row) => row.migration)
 
   // Get migration files
-  const migrationsDir = useRuntimeConfig().migrationsDir
   const migrationFiles = fs
     .readdirSync(migrationsDir)
     .filter((file) => file.endsWith('.js'))

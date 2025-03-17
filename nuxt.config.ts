@@ -1,4 +1,3 @@
-import path from 'path'
 import { defineNuxtConfig } from 'nuxt/config'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
@@ -13,11 +12,6 @@ export default defineNuxtConfig({
     compatibilityVersion: 4,
   },
   compatibilityDate: '2024-11-01',
-
-  runtimeConfig: {
-    migrationsDir: path.join(process.cwd(), 'migrations'),
-    dbPath: path.join(process.cwd(), 'data/database.sqlite'),
-  },
 
   vite: {
     css: {
@@ -39,7 +33,6 @@ export default defineNuxtConfig({
   elementPlus: {
     icon: 'ElIcon',
     importStyle: 'scss',
-    defaultLocale: 'zh-cn',
   },
 
   vueuse: {
