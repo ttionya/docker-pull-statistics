@@ -7,7 +7,7 @@ export class MigrationService extends BaseDatabaseService<DBMigrations> {
     super('migrations')
   }
 
-  createTable(): void {
+  public createTable(): void {
     return this.execute((db) => {
       db.exec(`
         CREATE TABLE IF NOT EXISTS migrations (
@@ -20,7 +20,7 @@ export class MigrationService extends BaseDatabaseService<DBMigrations> {
     })
   }
 
-  runMigration(migration: Migration, migrationName: string, batch: number): void {
+  public runMigration(migration: Migration, migrationName: string, batch: number): void {
     return this.transaction((db) => {
       migration.up(db)
 
@@ -28,7 +28,7 @@ export class MigrationService extends BaseDatabaseService<DBMigrations> {
     })
   }
 
-  findLastBatch(): number {
+  public findLastBatch(): number {
     return this.execute((db) => {
       type Batch = Pick<DBMigrations, 'batch'> | undefined
 
@@ -38,7 +38,7 @@ export class MigrationService extends BaseDatabaseService<DBMigrations> {
     })
   }
 
-  findByMigration(migrationName: string): FindDBMigrations {
+  public findByMigration(migrationName: string): FindDBMigrations {
     return this.execute(
       (db) =>
         db
@@ -47,7 +47,7 @@ export class MigrationService extends BaseDatabaseService<DBMigrations> {
     )
   }
 
-  create(migrationName: string, batch: number, timestamp = Date.now()): number {
+  private create(migrationName: string, batch: number, timestamp = Date.now()): number {
     return this.execute((db) => {
       const result = db
         .prepare('INSERT INTO migrations (migration, batch, created_at) VALUES (?, ?, ?)')
@@ -57,7 +57,7 @@ export class MigrationService extends BaseDatabaseService<DBMigrations> {
     })
   }
 
-  rollbackBatch(batch: number): number {
+  public rollbackBatch(batch: number): number {
     return this.execute((db) => {
       const result = db.prepare('DELETE FROM migrations WHERE batch = ?').run(batch)
 

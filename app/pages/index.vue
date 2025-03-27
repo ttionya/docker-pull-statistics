@@ -7,6 +7,9 @@
       <el-table-column prop="latestCount" label="Latest Pull Count">
         <template #default="scope">
           {{ formatNumber(scope.row.latestCount) }}
+          <sup style="color: #f56c6c">
+            +{{ formatNumber(scope.row.latestCount - scope.row.previousCount) }}
+          </sup>
         </template>
       </el-table-column>
       <el-table-column prop="latestUpdate" label="Last Updated">
@@ -14,11 +17,9 @@
           {{ formatDate(scope.row.latestUpdate) }}
         </template>
       </el-table-column>
-      <el-table-column label="Actions" width="120" fixed="right">
+      <el-table-column label="Actions" width="150" fixed="right">
         <template #default="scope">
-          <el-button type="primary" size="small" @click="onViewStats(scope.row)">
-            View Stats
-          </el-button>
+          <el-button type="primary" @click="onViewStats(scope.row)"> View Stats </el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -50,7 +51,7 @@ function formatDate(timestamp: number): string {
   if (!timestamp) return 'N/A'
 
   const date = new Date(timestamp)
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat('default', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

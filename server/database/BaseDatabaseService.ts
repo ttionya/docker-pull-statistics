@@ -7,11 +7,11 @@ const transactionStorage = new AsyncLocalStorage<DBInstance>()
 export default class BaseDatabaseService<T> {
   protected tableName: string
 
-  constructor(tableName: string) {
+  public constructor(tableName: string) {
     this.tableName = tableName
   }
 
-  execute<R>(callback: (db: DBInstance) => R): R {
+  public execute<R>(callback: (db: DBInstance) => R): R {
     const existingConnection = transactionStorage.getStore()
 
     if (existingConnection) {
@@ -27,7 +27,7 @@ export default class BaseDatabaseService<T> {
     }
   }
 
-  transaction<R>(callback: (db: DBInstance) => R): R {
+  public transaction<R>(callback: (db: DBInstance) => R): R {
     const db = getDatabase()
 
     return transactionStorage.run(db, () => {
@@ -46,17 +46,17 @@ export default class BaseDatabaseService<T> {
     })
   }
 
-  findById(id: number): T | undefined {
+  public findById(id: number): T | undefined {
     return this.execute(
       (db) => db.prepare(`SELECT * FROM ${this.tableName} WHERE id = ?`).get(id) as T | undefined
     )
   }
 
-  findAll(): T[] {
+  public findAll(): T[] {
     return this.execute((db) => db.prepare(`SELECT * FROM ${this.tableName}`).all() as T[])
   }
 
-  count(): number {
+  public count(): number {
     type Count = { count: number }
 
     return this.execute((db) => {
@@ -66,7 +66,7 @@ export default class BaseDatabaseService<T> {
     })
   }
 
-  delete(id: number): number {
+  public delete(id: number): number {
     return this.execute((db) => {
       const result = db.prepare(`DELETE FROM ${this.tableName} WHERE id = ?`).run(id)
 
