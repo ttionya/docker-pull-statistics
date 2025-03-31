@@ -8,6 +8,11 @@ export default defineNuxtConfig({
 
   modules: ['@nuxt/eslint', 'nuxt-cron', '@element-plus/nuxt', '@vueuse/nuxt'],
 
+  runtimeConfig: {
+    isProd: process.env.NODE_ENV === 'production',
+    databaseUri: process.env.DATABASE_URI || `sqlite:data/database.sqlite`,
+  },
+
   future: {
     compatibilityVersion: 4,
   },
