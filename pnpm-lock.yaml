@@ -20,9 +20,6 @@ importers:
       '@ttionya/prettier-config':
         specifier: ^2.1.0
         version: 2.1.0(prettier@3.5.3)
-      '@types/better-sqlite3':
-        specifier: ^7.6.12
-        version: 7.6.12
       '@types/fs-extra':
         specifier: ^11.0.4
         version: 11.0.4
@@ -32,9 +29,6 @@ importers:
       '@vueuse/nuxt':
         specifier: ^13.0.0
         version: 13.0.0(magicast@0.3.5)(nuxt@3.15.4(@parcel/watcher@2.5.1)(@types/node@22.13.10)(better-sqlite3@11.8.1)(db0@0.3.1(better-sqlite3@11.8.1)(sqlite3@5.1.7))(encoding@0.1.13)(eslint@9.22.0(jiti@2.4.2))(ioredis@5.6.0)(magicast@0.3.5)(optionator@0.9.4)(rollup@4.35.0)(sass@1.85.1)(sqlite3@5.1.7)(terser@5.39.0)(typescript@5.8.2)(vite@6.2.1(@types/node@22.13.10)(jiti@2.4.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))(yaml@2.7.0))(vue@3.5.13(typescript@5.8.2))
-      better-sqlite3:
-        specifier: ^11.8.1
-        version: 11.8.1
       dayjs:
         specifier: ^1.11.13
         version: 1.11.13
@@ -89,6 +83,9 @@ importers:
       vue-router:
         specifier: ^4.5.0
         version: 4.5.0(vue@3.5.13(typescript@5.8.2))
+      zod:
+        specifier: ^3.24.2
+        version: 3.24.2
 
 packages:
 
@@ -1183,9 +1180,6 @@ packages:
 
   '@types/argparse@1.0.38':
     resolution: {integrity: sha512-ebDJ9b0e702Yr7pWgB0jzm+CX4Srzz8RcXtLJDJB+BSccqMa36uyH/zUsSYao5+BD1ytv3k3rPYCq4mAE1hsXA==}
-
-  '@types/better-sqlite3@7.6.12':
-    resolution: {integrity: sha512-fnQmj8lELIj7BSrZQAdBMHEHX8OZLYIHXqAKT1O7tDfLxaINzf00PMjw22r3N/xXh0w/sGHlO6SVaCQ2mj78lg==}
 
   '@types/debug@4.1.12':
     resolution: {integrity: sha512-vIChWdVG3LG1SMxEvI/AK+FWJthlrqlTu7fbrlywTkkaONwk/UAGaULXRlf8vkzFBLVm0zkMdCquhL5aOjhXPQ==}
@@ -4703,6 +4697,9 @@ packages:
     resolution: {integrity: sha512-zK7YHHz4ZXpW89AHXUPbQVGKI7uvkd3hzusTdotCg1UxyaVtg0zFJSTfW/Dq5f7OBBVnq6cZIaC8Ti4hb6dtCA==}
     engines: {node: '>= 14'}
 
+  zod@3.24.2:
+    resolution: {integrity: sha512-lY7CDW43ECgW9u1TcT3IoXHflywfVqDYze4waEz812jR/bZ8FHDsl7pFQoSZTz5N+2NqRXs8GBwnAwo3ZNxqhQ==}
+
   zrender@5.6.1:
     resolution: {integrity: sha512-OFXkDJKcrlx5su2XbzJvj/34Q3m6PvyCZkVPHGYpcCJ52ek4U/ymZyfuV1nKE23AyBJ51E/6Yr0mhZ7xGTO4ag==}
 
@@ -5916,10 +5913,6 @@ snapshots:
 
   '@types/argparse@1.0.38': {}
 
-  '@types/better-sqlite3@7.6.12':
-    dependencies:
-      '@types/node': 22.13.10
-
   '@types/debug@4.1.12':
     dependencies:
       '@types/ms': 2.1.0
@@ -6449,6 +6442,7 @@ snapshots:
     dependencies:
       bindings: 1.5.0
       prebuild-install: 7.1.3
+    optional: true
 
   binary-extensions@2.3.0: {}
 
@@ -9930,6 +9924,8 @@ snapshots:
       archiver-utils: 5.0.2
       compress-commons: 6.0.2
       readable-stream: 4.7.0
+
+  zod@3.24.2: {}
 
   zrender@5.6.1:
     dependencies:

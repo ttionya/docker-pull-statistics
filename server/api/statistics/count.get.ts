@@ -1,27 +1,17 @@
+import { StatisticsCountGetSchema } from '~~/server/constants/requestSchema'
 import { RepositoryService } from '~~/server/services/RepositoryService'
 import { PullStatisticsService } from '~~/server/services/PullStatisticsService'
 import type { PullStatistic } from '~~/server/models/PullStatistic'
 
 export default defineEventHandler(async (event) => {
-  const query = getQuery(event)
-  const repository = query.repository as string
-  const dimension = (query.dimension as string) || 'day'
-  const { fromTimestamp, toTimestamp } = formatTimestamp(query.from, query.to)
-  const timezoneOffset = Number(query.timezone) || 0
-
-  if (!repository) {
-    throw createError({
-      statusCode: 400,
-      message: 'Repository parameter is required',
-    })
-  }
-
-  if (!['month', 'day', 'hour'].includes(dimension)) {
-    throw createError({
-      statusCode: 400,
-      message: 'Invalid dimension. Must be month, day, or hour',
-    })
-  }
+  const {
+    repository,
+    from,
+    to,
+    dimension = 'day',
+    timezone: timezoneOffset = 0,
+  } = await getValidatedQuery(event, StatisticsCountGetSchema.parse)
+  const { fromTimestamp, toTimestamp } = formatTimestamp(from, to)
 
   const queryRepository = await new RepositoryService().findByName(repository)
 

@@ -1,27 +1,23 @@
+import { StatisticsImportPostSchema } from '~~/server/constants/requestSchema'
 import { RepositoryService } from '~~/server/services/RepositoryService'
 import { RepositoryStatsService } from '~~/server/services/RepositoryStatsService'
 import { PullStatisticsService } from '~~/server/services/PullStatisticsService'
 import { requireAuth } from '~~/server/utils/authorization'
-import type { MultiPartData } from 'h3'
+import { readValidatedFormData } from '~~/server/utils/formDataValidation'
 import type { PullStatisticBulkCreationAttributes } from '~~/server/models/PullStatistic'
 
 export default defineEventHandler(async (event) => {
   requireAuth(event)
 
-  const formData = await readMultipartFormData(event)
+  const { repository: name, file } = await readValidatedFormData(event, StatisticsImportPostSchema)
 
-  if (!formData) {
-    throw createError({
-      statusCode: 400,
-      message: 'Invalid formdata.',
-    })
-  }
-
-  const name = getRepository(formData)
-  const lines = getCsvLines(formData)
+  const fileLines = Buffer.from(file.data)
+    .toString('utf-8')
+    .split('\n')
+    .filter((line) => line.trim())
 
   // Skip header line
-  const dataLines = lines.slice(1)
+  const dataLines = fileLines.slice(1)
   console.log(`Read ${dataLines.length} records from CSV file`)
 
   // Process and insert records
@@ -88,9 +84,7 @@ export default defineEventHandler(async (event) => {
     }
 
     if (bulkCreateData.length > 0) {
-      console.log(1111)
       await pullStatisticsService.bulkCreate(bulkCreateData, { transaction })
-      console.log(2222)
       await repositoryStatsService.updateStatsByRepositoryId(repositoryId, { transaction })
     }
   })
@@ -103,42 +97,3 @@ export default defineEventHandler(async (event) => {
     skipped,
   }
 })
-
-function getRepository(formData: MultiPartData[]): string {
-  const repositoryPart = formData.find((part) => part.name === 'repository')
-
-  if (!repositoryPart || !repositoryPart.data) {
-    throw createError({
-      statusCode: 400,
-      message: 'Repository parameter is required',
-    })
-  }
-
-  const name = Buffer.from(repositoryPart.data).toString('utf-8')
-  const [namespace, repository] = name.split('/')
-
-  if (!namespace || !repository) {
-    throw createError({
-      statusCode: 400,
-      message: 'Invalid repository name. Should be in format "namespace/repository"',
-    })
-  }
-
-  return name
-}
-
-function getCsvLines(formData: MultiPartData[]): string[] {
-  const filePart = formData.find((part) => part.name === 'file')
-
-  if (!filePart || !filePart.data) {
-    throw createError({
-      statusCode: 400,
-      message: 'File parameter is required',
-    })
-  }
-
-  const fileContent = Buffer.from(filePart.data).toString('utf-8')
-  const lines = fileContent.split('\n').filter((line) => line.trim())
-
-  return lines
-}
