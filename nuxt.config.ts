@@ -19,6 +19,13 @@ export default defineNuxtConfig({
   },
   compatibilityDate: '2024-11-01',
 
+  nitro: {
+    replace: {
+      // https://github.com/nitrojs/nitro/issues/3071
+      'typeof window': '`undefined`',
+    },
+  },
+
   vite: {
     css: {
       preprocessorOptions: {
