@@ -2,24 +2,26 @@ import { BaseService } from './BaseService'
 import { Repository } from '~~/server/models/Repository'
 import { RepositoryStats } from '~~/server/models/RepositoryStats'
 import type { RepositoryCreationAttributes } from '~~/server/models/Repository'
-import type { DCreationOptions } from '~~/server/types/service'
+import type { DModelOperationOptions } from '~~/server/types/service'
 
 export class RepositoryService extends BaseService {
-  public async findByName(name: string) {
+  public async findByName(name: string, options?: DModelOperationOptions) {
     return Repository.findOne({
       where: {
         name,
       },
+      ...options,
     })
   }
 
-  public async findAll() {
+  public async findAll(options?: DModelOperationOptions) {
     return Repository.findAll({
       order: [['name', 'ASC']],
+      ...options,
     })
   }
 
-  public async findAllWithStats() {
+  public async findAllWithStats(options?: DModelOperationOptions) {
     return Repository.findAll({
       include: [
         {
@@ -29,10 +31,11 @@ export class RepositoryService extends BaseService {
         },
       ],
       order: [['name', 'ASC']],
+      ...options,
     })
   }
 
-  public async create(payload: RepositoryCreationAttributes, options?: DCreationOptions) {
+  public async create(payload: RepositoryCreationAttributes, options?: DModelOperationOptions) {
     return Repository.create(payload, options)
   }
 }

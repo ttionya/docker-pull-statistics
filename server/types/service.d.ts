@@ -1,5 +1,12 @@
-import type { Transaction } from 'sequelize'
+import type { Transaction, Order } from 'sequelize'
 
-export interface DCreationOptions {
+export interface DModelTransactionOptions {
   transaction?: Transaction
 }
+
+export interface DModelFindOptions {
+  limit?: number
+  order?: Order
+}
+
+export interface DModelOperationOptions extends DModelTransactionOptions, DModelFindOptions {}

@@ -1,16 +1,8 @@
 import { RepositoryService } from '~~/server/services/RepositoryService'
-
-const config = useRuntimeConfig()
+import { requireAuth } from '~~/server/utils/authorization'
 
 export default defineEventHandler(async (event) => {
-  const token = getHeader(event, 'authorization')?.replace('Bearer ', '') || ''
-
-  if (!config.accessToken || token !== config.accessToken) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized: Invalid token',
-    })
-  }
+  requireAuth(event)
 
   const body = await readBody(event)
   const { repository: name } = body

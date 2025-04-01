@@ -7,6 +7,11 @@ export type PullStatisticCreationAttributes = InferCreationAttributes<
   { omit: 'id' | 'createdAt' | 'updatedAt' }
 >
 
+export type PullStatisticBulkCreationAttributes = InferCreationAttributes<
+  PullStatistic,
+  { omit: 'id' | 'updatedAt' }
+>
+
 export class PullStatistic extends Model<
   InferAttributes<PullStatistic>,
   PullStatisticCreationAttributes

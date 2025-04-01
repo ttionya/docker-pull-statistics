@@ -1,37 +1,41 @@
 import { BaseService } from './BaseService'
 import { RepositoryStats } from '~~/server/models/RepositoryStats'
-import { PullStatistic } from '~~/server/models/PullStatistic'
+import { PullStatisticsService } from './PullStatisticsService'
 import type { RepositoryStatsCreationAttributes } from '~~/server/models/RepositoryStats'
-import type { DCreationOptions } from '~~/server/types/service'
+import type { DModelOperationOptions } from '~~/server/types/service'
 
 export class RepositoryStatsService extends BaseService {
-  public async findByRepositoryId(repositoryId: number) {
+  public async findByRepositoryId(repositoryId: number, options?: DModelOperationOptions) {
     return RepositoryStats.findOne({
       where: {
         repositoryId,
       },
+      ...options,
     })
   }
 
-  public async updateStatsByRepositoryId(repositoryId: number) {
+  public async updateStatsByRepositoryId(repositoryId: number, options?: DModelOperationOptions) {
+    const findByRepositoryId1P = this.findByRepositoryId(repositoryId, options)
+    const findByRepositoryId2P = new PullStatisticsService().findByRepositoryId(repositoryId, {
+      ...options,
+      limit: 2,
+      order: [['createdAt', 'DESC']],
+    })
+
     const [findRepositoryStats, [latestData, previousData]] = await Promise.all([
-      this.findByRepositoryId(repositoryId),
-      PullStatistic.findAll({
-        where: {
-          repositoryId,
-        },
-        order: [['createdAt', 'DESC']],
-        limit: 2,
-      }),
+      findByRepositoryId1P,
+      findByRepositoryId2P,
     ])
 
     return this.transaction(async (transaction) => {
-      let payload: RepositoryStats
+      let payload: Partial<RepositoryStats>
 
       if (findRepositoryStats) {
-        payload = findRepositoryStats
+        payload = {
+          id: findRepositoryStats.id,
+        }
       } else {
-        payload = await this.create(
+        const createdRepositoryStats = await this.create(
           {
             repositoryId,
             latestCount: null,
@@ -41,6 +45,9 @@ export class RepositoryStatsService extends BaseService {
           },
           { transaction }
         )
+        payload = {
+          id: createdRepositoryStats.id,
+        }
       }
 
       if (latestData) {
@@ -52,11 +59,11 @@ export class RepositoryStatsService extends BaseService {
         payload.previousUpdatedAt = previousData.createdAt
       }
 
-      return await this.update(payload, { transaction })
-    })
+      return this.update(payload, { transaction })
+    }, options?.transaction)
   }
 
-  private async update(payload: RepositoryStats, options?: DCreationOptions) {
+  private async update(payload: Partial<RepositoryStats>, options?: DModelOperationOptions) {
     return RepositoryStats.update(payload, {
       where: {
         id: payload.id,
@@ -65,7 +72,10 @@ export class RepositoryStatsService extends BaseService {
     })
   }
 
-  private async create(payload: RepositoryStatsCreationAttributes, options?: DCreationOptions) {
+  private async create(
+    payload: RepositoryStatsCreationAttributes,
+    options?: DModelOperationOptions
+  ) {
     return RepositoryStats.create(payload, options)
   }
 }
