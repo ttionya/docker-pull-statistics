@@ -16,7 +16,7 @@ const stringToNumber = () =>
 const repository = z
   .string({ required_error: 'Parameter "repository" is required' })
   .regex(/^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/, {
-    message: 'Invalid repository name. Must be in format "namespace/repository"',
+    message: 'Invalid repository name. It should be in the format "namespace/repository"',
   })
 
 /**
@@ -48,7 +48,7 @@ export const StatisticsImportPostSchema = z.object({
   repository,
   file: z.object(
     {
-      filename: z.string().regex(/\.csv$/, { message: 'Invalid file type. Must be "csv"' }),
+      filename: z.string().regex(/\.csv$/, { message: 'Invalid file type. Must be a CSV file' }),
       type: z.string(),
       data: z.instanceof(Buffer).refine((buffer) => buffer.length > 0, {
         message: 'Invalid file',

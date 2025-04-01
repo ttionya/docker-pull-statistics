@@ -1,3 +1,4 @@
+import Papa from 'papaparse'
 import { StatisticsImportPostSchema } from '~~/server/constants/requestSchema'
 import { RepositoryService } from '~~/server/services/RepositoryService'
 import { RepositoryStatsService } from '~~/server/services/RepositoryStatsService'
@@ -11,21 +12,12 @@ export default defineEventHandler(async (event) => {
 
   const { repository: name, file } = await readValidatedFormData(event, StatisticsImportPostSchema)
 
-  const fileLines = Buffer.from(file.data)
-    .toString('utf-8')
-    .split('\n')
-    .filter((line) => line.trim())
-
-  // Skip header line
-  const dataLines = fileLines.slice(1)
-  console.log(`Read ${dataLines.length} records from CSV file`)
+  const csvData = getValidatedCsvData(file.data)
+  console.log('Read from the CSV file:', `${csvData.length} rows`)
 
   // Process and insert records
-  let inserted = 0
-  let skipped = 0
+  const statisticRows = { total: csvData.length, insert: 0, skip: 0, invalid: 0, exist: 0 }
   let repositoryId: number
-
-  console.log(`Starting import for ${name}...`)
 
   const repositoryService = new RepositoryService()
   const repositoryStatsService = new RepositoryStatsService()
@@ -42,45 +34,51 @@ export default defineEventHandler(async (event) => {
         { transaction }
       )
       repositoryId = createdRepository.id
-      console.log(`Created repository with ID: ${repositoryId}`)
+      console.log('Created repository with ID:', repositoryId)
     } else {
       repositoryId = existing.id
-      console.log(`Repository found with ID: ${repositoryId}`)
+      console.log('Repository found with ID:', repositoryId)
     }
 
     const bulkCreateData: PullStatisticBulkCreationAttributes[] = []
 
-    for (const line of dataLines) {
-      const [timeStr, countStr] = line.split(',')
-      if (!timeStr || !countStr) {
-        skipped++
+    for (const row of csvData) {
+      const { time, count } = row
+      const intCount = parseInt(count)
+
+      if (isNaN(intCount)) {
+        console.log('Skipping row with invalid count:', count)
+        statisticRows.invalid++
         continue
       }
 
-      const timestamp = parseInt(timeStr)
-      const count = parseInt(countStr)
-
-      // Validate count is a valid number
-      if (isNaN(count)) {
-        console.log(`Skipping record with invalid count: ${line}`)
-        skipped++
-        continue
-      }
-
-      const date = new Date(timestamp)
+      const intTime = parseInt(time)
+      const date = new Date(isNaN(intTime) ? time : intTime)
       const minutes = date.getMinutes()
 
       // Keep only XX:00 and XX:30 entries
-      if (minutes === 0 || minutes === 30) {
-        bulkCreateData.push({
-          repositoryId,
-          count,
-          createdAt: date,
-        })
-        inserted++
-      } else {
-        skipped++
+      if (![0, 30].includes(minutes)) {
+        statisticRows.skip++
+        continue
       }
+
+      const existingRecord = await pullStatisticsService.findByRepositoryIdAndCreatedAt(
+        { repositoryId, createdAt: date },
+        { transaction }
+      )
+
+      if (existingRecord) {
+        console.log('Skipping row with existing record:', time)
+        statisticRows.exist++
+        continue
+      }
+
+      bulkCreateData.push({
+        repositoryId,
+        count: intCount,
+        createdAt: date,
+      })
+      statisticRows.insert++
     }
 
     if (bulkCreateData.length > 0) {
@@ -89,11 +87,34 @@ export default defineEventHandler(async (event) => {
     }
   })
 
+  console.log('Import statistics:', statisticRows)
+
   return {
-    name,
+    repository: name,
     repositoryId: repositoryId!,
-    total: dataLines.length,
-    inserted,
-    skipped,
+    rows: statisticRows,
   }
 })
+
+function getValidatedCsvData(csvBuffer: Buffer) {
+  const csvContent = csvBuffer.toString('utf-8')
+  const parsed = Papa.parse(csvContent, { header: true, skipEmptyLines: true })
+
+  if (parsed.errors?.length > 0) {
+    throw createError({
+      statusCode: 400,
+      message: `Invalid CSV format. ${parsed.errors.map((error) => error.message).join(', ')}`,
+    })
+  }
+
+  const data = parsed.data as { time: string; count: string }[]
+
+  if (data.length === 0 || !('time' in data[0]) || !('count' in data[0])) {
+    throw createError({
+      statusCode: 400,
+      message: 'Invalid CSV format. CSV file must contain "time" and "count" headers',
+    })
+  }
+
+  return data
+}

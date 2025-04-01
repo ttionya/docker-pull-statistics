@@ -8,7 +8,20 @@ import type {
 import type { DModelOperationOptions } from '~~/server/types/service'
 
 export class PullStatisticsService extends BaseService {
-  public async findByRepositoryId(repositoryId: number, options?: DModelOperationOptions) {
+  public async findByRepositoryIdAndCreatedAt(
+    data: { repositoryId: number; createdAt: Date },
+    options?: DModelOperationOptions
+  ) {
+    return PullStatistic.findOne({
+      where: {
+        repositoryId: data.repositoryId,
+        createdAt: data.createdAt,
+      },
+      ...options,
+    })
+  }
+
+  public async findAllByRepositoryId(repositoryId: number, options?: DModelOperationOptions) {
     return PullStatistic.findAll({
       where: {
         repositoryId,
@@ -18,7 +31,7 @@ export class PullStatisticsService extends BaseService {
     })
   }
 
-  public async findInTimeRange(
+  public async findAllBetweenTimeRange(
     data: {
       repositoryId: number
       fromTimestamp: number

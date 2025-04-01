@@ -16,7 +16,7 @@ export class RepositoryStatsService extends BaseService {
 
   public async updateStatsByRepositoryId(repositoryId: number, options?: DModelOperationOptions) {
     const findByRepositoryId1P = this.findByRepositoryId(repositoryId, options)
-    const findByRepositoryId2P = new PullStatisticsService().findByRepositoryId(repositoryId, {
+    const findByRepositoryId2P = new PullStatisticsService().findAllByRepositoryId(repositoryId, {
       ...options,
       limit: 2,
       order: [['createdAt', 'DESC']],

@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Get statistics records
-  const records = await new PullStatisticsService().findInTimeRange({
+  const records = await new PullStatisticsService().findAllBetweenTimeRange({
     repositoryId: queryRepository.id,
     fromTimestamp,
     toTimestamp,
