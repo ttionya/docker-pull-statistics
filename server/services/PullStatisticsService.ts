@@ -1,3 +1,4 @@
+import { Op } from 'sequelize'
 import { BaseService } from './BaseService'
 import { PullStatistic } from '~~/server/models/PullStatistic'
 import type { PullStatisticCreationAttributes } from '~~/server/models/PullStatistic'
@@ -11,15 +12,22 @@ export class PullStatisticsService extends BaseService {
     })
   }
 
-  // findInTimeRange(repositoryId: number, fromTimestamp: number, toTimestamp: number) {
-  //   return this.execute((db) => {
-  //     return db
-  //       .prepare(
-  //         'SELECT * FROM pull_statistics WHERE repository_id = ? AND created_at >= ? AND created_at <= ? ORDER BY created_at ASC'
-  //       )
-  //       .all(repositoryId, fromTimestamp, toTimestamp)
-  //   })
-  // }
+  public async findInTimeRange(payload: {
+    repositoryId: number
+    fromTimestamp: number
+    toTimestamp: number
+  }) {
+    return PullStatistic.findAll({
+      where: {
+        repositoryId: payload.repositoryId,
+        createdAt: {
+          [Op.gte]: new Date(payload.fromTimestamp),
+          [Op.lte]: new Date(payload.toTimestamp),
+        },
+      },
+      order: [['createdAt', 'ASC']],
+    })
+  }
 
   public async create(payload: PullStatisticCreationAttributes, options?: DCreationOptions) {
     return PullStatistic.create(payload, options)

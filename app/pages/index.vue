@@ -3,23 +3,39 @@
     <h1>Docker Hub Repositories</h1>
 
     <el-table :data="repositories" size="large" style="width: 100%">
-      <el-table-column prop="name" label="Repository" />
-      <el-table-column prop="latestCount" label="Latest Pull Count">
-        <template #default="scope">
-          {{ formatNumber(scope.row.latestCount) }}
-          <sup style="color: #f56c6c">
-            +{{ formatNumber(scope.row.latestCount - scope.row.previousCount) }}
-          </sup>
+      <el-table-column label="Repository">
+        <template #default="{ row }">
+          <el-link type="primary" @click="goStatisticsPage(row)">{{ row.name }}</el-link>
         </template>
       </el-table-column>
-      <el-table-column prop="latestUpdate" label="Last Updated">
-        <template #default="scope">
-          {{ formatDate(scope.row.latestUpdate) }}
+
+      <el-table-column label="Latest Pull Count">
+        <template #default="{ row }">
+          {{ formatNumber(row.repositoryStats?.latestCount) }}
+          <el-tooltip
+            v-if="
+              isNumber(row.repositoryStats?.latestCount) &&
+              isNumber(row.repositoryStats?.previousCount)
+            "
+            placement="top"
+            :content="`${formatDate(row.repositoryStats?.previousUpdatedAt)} - ${formatDate(row.repositoryStats?.latestUpdatedAt)}`"
+          >
+            <template #default>
+              <sup style="color: #f56c6c">
+                +{{
+                  formatNumber(
+                    row.repositoryStats?.latestCount - row.repositoryStats?.previousCount
+                  )
+                }}
+              </sup>
+            </template>
+          </el-tooltip>
         </template>
       </el-table-column>
-      <el-table-column label="Actions" width="150" fixed="right">
-        <template #default="scope">
-          <el-button type="primary" @click="onViewStats(scope.row)"> View Stats </el-button>
+
+      <el-table-column label="Last Updated">
+        <template #default="{ row }">
+          {{ formatDate(row.repositoryStats?.latestUpdatedAt) }}
         </template>
       </el-table-column>
     </el-table>
@@ -27,37 +43,39 @@
 </template>
 
 <script setup lang="ts">
+import dayjs from 'dayjs'
+import { isNumber } from '~/utils/typeCheck'
+
 interface Repository {
   id: number
   namespace: string
   repository: string
   name: string
-  latestCount: number
-  latestUpdate: number
+  repositoryStats?: {
+    latestCount: number | null
+    latestUpdatedAt: string | null
+    previousCount: number | null
+    previousUpdatedAt: string | null
+  }
 }
 
 const { data: repositoriesData } = useFetch('/api/repositories')
 const repositories = computed(() => repositoriesData.value?.repositories || [])
 
-function onViewStats(repository: Repository) {
-  navigateTo(`/statistics/${encodeURIComponent(repository.name)}`)
+function goStatisticsPage(repository: Repository) {
+  navigateTo(`/statistics/${repository.namespace}/${repository.repository}`)
 }
 
-function formatNumber(num: number): string {
+function formatNumber(num?: number): string {
+  if (!isNumber(num)) return 'N/A'
+
   return num ? num.toLocaleString() : '0'
 }
 
-function formatDate(timestamp: number): string {
-  if (!timestamp) return 'N/A'
+function formatDate(date?: string): string {
+  if (!date) return 'N/A'
 
-  const date = new Date(timestamp)
-  return new Intl.DateTimeFormat('default', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)
+  return dayjs(date).format('YYYY-MM-DD HH:mm:ss')
 }
 </script>
 

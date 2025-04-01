@@ -1,6 +1,6 @@
-import { RepositoriesService } from '~~/server/database/RepositoriesService'
-import { PullStatisticsService } from '~~/server/database/PullStatisticsService'
-import type { DBPullStatistics } from '~~/server/types/db'
+import { RepositoryService } from '~~/server/services/RepositoryService'
+import { PullStatisticsService } from '~~/server/services/PullStatisticsService'
+import type { PullStatistic } from '~~/server/models/PullStatistic'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
@@ -23,18 +23,18 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const queryRepository = new RepositoriesService().findByName(repository)
+  const queryRepository = await new RepositoryService().findByName(repository)
 
   if (!queryRepository) {
     return { data: [] }
   }
 
   // Get statistics records
-  const records = new PullStatisticsService().findInTimeRange(
-    queryRepository.id,
+  const records = await new PullStatisticsService().findInTimeRange({
+    repositoryId: queryRepository.id,
     fromTimestamp,
-    toTimestamp
-  )
+    toTimestamp,
+  })
 
   if (records.length === 0) {
     return { data: [] }
@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
 
   // Generate time points based on dimension
   const timePoints = generateTimePoints(
-    records[0].created_at,
+    new Date(records[0].createdAt).getTime(),
     toTimestamp,
     dimension,
     timezoneOffset
@@ -114,7 +114,7 @@ function formatTimePoint(date: Date, dimension: string): string {
 
 function mapRecordsToTimePoints(
   timePoints: Date[],
-  records: DBPullStatistics[],
+  records: PullStatistic[],
   dimension: string,
   timezoneOffset: number
 ) {
@@ -127,7 +127,7 @@ function mapRecordsToTimePoints(
 
     let matchingRecord = null
     for (let j = records.length - 1; j >= 0; j--) {
-      if (records[j].created_at <= timePointTimestamp) {
+      if (new Date(records[j].createdAt).getTime() <= timePointTimestamp) {
         matchingRecord = records[j]
         break
       }

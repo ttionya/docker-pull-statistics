@@ -1,8 +1,8 @@
 import { BaseService } from './BaseService'
 import { RepositoryStats } from '~~/server/models/RepositoryStats'
 import { PullStatistic } from '~~/server/models/PullStatistic'
-import type { DCreationOptions } from '~~/server/types/service'
 import type { RepositoryStatsCreationAttributes } from '~~/server/models/RepositoryStats'
+import type { DCreationOptions } from '~~/server/types/service'
 
 export class RepositoryStatsService extends BaseService {
   public async findByRepositoryId(repositoryId: number) {

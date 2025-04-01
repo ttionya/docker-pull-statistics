@@ -33,7 +33,7 @@ import * as echarts from 'echarts'
 import { useEventListener } from '@vueuse/core'
 
 const route = useRoute()
-const repositoryName = decodeURIComponent(route.params.repo as string)
+const repositoryName = `${route.params.namespace as string}/${route.params.repository as string}`
 const chartHeight = ref(0)
 const dimension = ref('day')
 const dateRange = ref<[Date, Date] | []>([])
