@@ -10,7 +10,8 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     isProd: process.env.NODE_ENV === 'production',
-    databaseUri: process.env.DATABASE_URI || `sqlite:data/database.sqlite`,
+    accessToken: process.env.ACCESS_TOKEN,
+    databaseUri: process.env.DATABASE_URI || 'sqlite:data/database.sqlite',
   },
 
   future: {

@@ -1,17 +1,27 @@
 import { sequelize } from './index'
 import { Model, DataTypes } from 'sequelize'
-import type { InferAttributes, InferCreationAttributes, CreationOptional } from 'sequelize'
+import type { RepositoryStats } from './RepositoryStats'
+import type {
+  InferAttributes,
+  InferCreationAttributes,
+  CreationOptional,
+  NonAttribute,
+} from 'sequelize'
 
-export class Repository extends Model<
-  InferAttributes<Repository>,
-  InferCreationAttributes<Repository>
-> {
+export type RepositoryCreationAttributes = InferCreationAttributes<
+  Repository,
+  { omit: 'id' | 'createdAt' | 'updatedAt' }
+>
+
+export class Repository extends Model<InferAttributes<Repository>, RepositoryCreationAttributes> {
   declare id: CreationOptional<number>
   declare namespace: string
   declare repository: string
   declare name: string
   declare createdAt: CreationOptional<Date>
   declare updatedAt: CreationOptional<Date>
+
+  declare repositoryStats: NonAttribute<RepositoryStats | null>
 }
 
 Repository.init(

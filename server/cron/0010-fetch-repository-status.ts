@@ -1,15 +1,16 @@
 // eslint-disable-next-line @typescript-eslint/triple-slash-reference
 /// <reference path="../../.nuxt/types/nuxt-cron.d.ts" />
 import { defineCronHandler } from '#nuxt/cron'
-import { RepositoriesService } from '~~/server/database/RepositoriesService'
-import { PullStatisticsService } from '~~/server/database/PullStatisticsService'
-import type { DBRepositories } from '~~/server/types/db'
+import { RepositoryService } from '~~/server/services/RepositoryService'
+import { RepositoryStatsService } from '~~/server/services/RepositoryStatsService'
+import { PullStatisticsService } from '~~/server/services/PullStatisticsService'
+import type { Repository } from '~~/server/models/Repository'
 
 export default defineCronHandler(
   () => '0,30 * * * *',
   async () => {
     try {
-      const repositories = new RepositoriesService().findAll()
+      const repositories = await new RepositoryService().findAll()
 
       if (repositories.length === 0) {
         console.log('No repositories found in the database')
@@ -23,7 +24,7 @@ export default defineCronHandler(
   }
 )
 
-async function processRepository(repository: DBRepositories) {
+async function processRepository(repository: Repository) {
   const name = repository.name
   try {
     console.log(`Fetching stats for ${name}...`)
@@ -41,7 +42,9 @@ async function processRepository(repository: DBRepositories) {
       throw new Error(`Invalid pull count received: ${count}`)
     }
 
-    new PullStatisticsService().create(repository.id, count)
+    await new PullStatisticsService().create({ repositoryId: repository.id, count })
+
+    await new RepositoryStatsService().updateStatsByRepositoryId(repository.id)
 
     console.log(`Stored Docker Hub stats: ${count} pulls for ${name}`)
   } catch (error) {

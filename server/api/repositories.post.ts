@@ -1,10 +1,11 @@
-import { RepositoriesService } from '~~/server/database/RepositoriesService'
+import { RepositoryService } from '~~/server/services/RepositoryService'
+
+const config = useRuntimeConfig()
 
 export default defineEventHandler(async (event) => {
   const token = getHeader(event, 'authorization')?.replace('Bearer ', '') || ''
-  const accessToken = process.env.ACCESS_TOKEN
 
-  if (!accessToken || token !== accessToken) {
+  if (!config.accessToken || token !== config.accessToken) {
     throw createError({
       statusCode: 401,
       message: 'Unauthorized: Invalid token',
@@ -30,8 +31,8 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const repositoriesService = new RepositoriesService()
-  const existing = repositoriesService.findByName(name)
+  const repositoryService = new RepositoryService()
+  const existing = await repositoryService.findByName(name)
 
   if (existing) {
     throw createError({
@@ -40,12 +41,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const id = repositoriesService.create(namespace, repository, name)
+  const createdRepository = await repositoryService.create({ namespace, repository, name })
 
-  return {
-    id,
-    namespace,
-    repository,
-    name,
-  }
+  return createdRepository
 })

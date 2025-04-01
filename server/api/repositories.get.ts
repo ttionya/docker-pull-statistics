@@ -1,7 +1,7 @@
-import { RepositoriesService } from '~~/server/database/RepositoriesService'
+import { RepositoryService } from '~~/server/services/RepositoryService'
 
 export default defineEventHandler(async () => {
-  const repositories = new RepositoriesService().findAllWithLatestStats()
+  const repositories = await new RepositoryService().findAllWithStats()
 
   return { repositories }
 })

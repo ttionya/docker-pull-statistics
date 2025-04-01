@@ -2,23 +2,26 @@ import { sequelize } from './index'
 import { Model, DataTypes } from 'sequelize'
 import type { InferAttributes, InferCreationAttributes, CreationOptional } from 'sequelize'
 
-export type PullStatisticCreationAttributes = InferCreationAttributes<
-  PullStatistic,
+export type RepositoryStatsCreationAttributes = InferCreationAttributes<
+  RepositoryStats,
   { omit: 'id' | 'createdAt' | 'updatedAt' }
 >
 
-export class PullStatistic extends Model<
-  InferAttributes<PullStatistic>,
-  PullStatisticCreationAttributes
+export class RepositoryStats extends Model<
+  InferAttributes<RepositoryStats>,
+  RepositoryStatsCreationAttributes
 > {
   declare id: CreationOptional<number>
   declare repositoryId: number
-  declare count: number
+  declare latestCount: number | null
+  declare latestUpdatedAt: Date | null
+  declare previousCount: number | null
+  declare previousUpdatedAt: Date | null
   declare createdAt: CreationOptional<Date>
   declare updatedAt: CreationOptional<Date>
 }
 
-PullStatistic.init(
+RepositoryStats.init(
   {
     id: {
       type: DataTypes.INTEGER.UNSIGNED,
@@ -27,27 +30,34 @@ PullStatistic.init(
     },
     repositoryId: {
       type: DataTypes.INTEGER.UNSIGNED,
+      unique: true,
       allowNull: false,
     },
-    count: {
+    latestCount: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
+    },
+    latestUpdatedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    previousCount: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    previousUpdatedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
     },
     createdAt: DataTypes.DATE,
     updatedAt: DataTypes.DATE,
   },
   {
     sequelize,
-    tableName: 'pull_statistics',
+    tableName: 'repositories_stats',
     indexes: [
       {
         fields: ['repositoryId'],
-      },
-      {
-        fields: ['createdAt'],
-      },
-      {
-        fields: ['repositoryId', 'createdAt'],
       },
     ],
   }
