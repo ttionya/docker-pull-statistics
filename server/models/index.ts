@@ -1,4 +1,5 @@
 import { Sequelize } from 'sequelize'
+import 'sqlite3'
 
 const config = useRuntimeConfig()
 
