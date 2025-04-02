@@ -31,14 +31,14 @@
 <script setup lang="ts">
 import * as echarts from 'echarts'
 import { useEventListener } from '@vueuse/core'
+import dayjs from 'dayjs'
 
 const route = useRoute()
 const repositoryName = `${route.params.namespace as string}/${route.params.repository as string}`
 const chartHeight = ref(0)
-const dimension = ref('day')
+const dimension = ref<'month' | 'day' | 'hour'>('day')
 const dateRange = ref<[Date, Date] | []>([])
 const loading = ref(false)
-const timezoneOffset = new Date().getTimezoneOffset()
 const chartRef = ref<HTMLElement | null>(null)
 let chart: echarts.ECharts | null = null
 
@@ -73,7 +73,7 @@ async function loadData() {
         from: startDate,
         to: endDate,
         dimension: dimension.value,
-        timezone: timezoneOffset,
+        timezoneOffset: new Date().getTimezoneOffset(),
       },
     })
 
@@ -87,10 +87,21 @@ async function loadData() {
   }
 }
 
-function updateChart(data: { time: string; count: number; delta: number }[]) {
+function updateChart(data: { time: number; count: number; delta: number }[]) {
   if (!chart) return
 
-  const times = data.map((item) => item.time)
+  const times = data.map((item) => {
+    switch (dimension.value) {
+      case 'month':
+        return dayjs(item.time).format('YYYY-MM')
+      case 'day':
+        return dayjs(item.time).format('YYYY-MM-DD')
+      case 'hour':
+        return dayjs(item.time).format('YYYY-MM-DD HH:mm')
+      default:
+        return item.time
+    }
+  })
   const counts = data.map((item) => item.count)
   const deltas = data.map((item) => item.delta)
 

@@ -33,7 +33,7 @@ export const StatisticsCountGetSchema = z.object({
   repository,
   from: stringToNumber().optional(),
   to: stringToNumber().optional(),
-  timezone: stringToNumber().pipe(z.number().min(-1080).max(1080).optional()),
+  timezoneOffset: stringToNumber().pipe(z.number().min(-1080).max(1080).optional()),
   dimension: z
     .enum(['month', 'day', 'hour'], {
       message: 'Invalid dimension. Must be "month", "day", or "hour"',

@@ -1,22 +1,34 @@
+import dayjs from 'dayjs'
+import dayjsUtc from 'dayjs/plugin/utc'
 import { StatisticsCountGetSchema } from '~~/server/constants/requestSchema'
 import { RepositoryService } from '~~/server/services/RepositoryService'
 import { PullStatisticsService } from '~~/server/services/PullStatisticsService'
 import type { PullStatistic } from '~~/server/models/PullStatistic'
 
+interface ReturnData {
+  time: number
+  count: number
+  delta: number
+}
+
+type Dimension = 'month' | 'day' | 'hour'
+
+dayjs.extend(dayjsUtc)
 export default defineEventHandler(async (event) => {
   const {
     repository,
     from,
     to,
     dimension = 'day',
-    timezone: timezoneOffset = 0,
+    timezoneOffset = 0,
   } = await getValidatedQuery(event, StatisticsCountGetSchema.parse)
   const { fromTimestamp, toTimestamp } = formatTimestamp(from, to)
+  const returnData: { data: ReturnData[] } = { data: [] }
 
   const queryRepository = await new RepositoryService().findByName(repository)
 
   if (!queryRepository) {
-    return { data: [] }
+    return returnData
   }
 
   // Get statistics records
@@ -27,100 +39,98 @@ export default defineEventHandler(async (event) => {
   })
 
   if (records.length === 0) {
-    return { data: [] }
+    return returnData
   }
 
   // Generate time points based on dimension
   const timePoints = generateTimePoints(
-    new Date(records[0].createdAt).getTime(),
+    records[0].createdAt.getTime(),
     toTimestamp,
     dimension,
     timezoneOffset
   )
 
   // Map records to the generated time points
-  const result = mapRecordsToTimePoints(timePoints, records, dimension, timezoneOffset)
+  returnData.data = mapRecordsToTimePoints(timePoints, records, dimension)
 
-  return { data: result }
+  return returnData
 })
 
 function generateTimePoints(
   fromTimestamp: number,
   toTimestamp: number,
-  dimension: string,
+  dimension: Dimension,
   timezoneOffset: number
-): Date[] {
-  const startDate = new Date(fromTimestamp + timezoneOffset * 60 * 1000)
-  const endDate = new Date(toTimestamp + timezoneOffset * 60 * 1000)
-  const timePoints: Date[] = []
+): number[] {
+  /**
+   * The time needs to be segmented based on the client's time zone,
+   * so the generated time points are based on the client's time zone.
+   * You need to use `utcOffset` from `dayjs` and remember to take the negative value of `timezoneOffset`.
+   */
+  const startTime = dayjs(fromTimestamp).utcOffset(-timezoneOffset)
+  const endTime = dayjs(toTimestamp).utcOffset(-timezoneOffset)
+
+  const timePoints: number[] = []
 
   if (dimension === 'month') {
-    startDate.setDate(1)
-    startDate.setHours(0, 0, 0, 0)
+    const newStartTime = startTime.date(1).hour(0).minute(0).second(0).millisecond(0)
 
-    const currentDate = new Date(startDate)
-    while (currentDate <= endDate) {
-      timePoints.push(new Date(currentDate))
-      currentDate.setMonth(currentDate.getMonth() + 1)
+    let currentTime = newStartTime
+    while (currentTime.isBefore(endTime) || currentTime.isSame(endTime)) {
+      timePoints.push(currentTime.valueOf())
+      currentTime = currentTime.add(1, 'month')
     }
   } else if (dimension === 'day') {
-    startDate.setHours(0, 0, 0, 0)
+    const newStartTime = startTime.hour(0).minute(0).second(0).millisecond(0)
 
-    const currentDate = new Date(startDate)
-    while (currentDate <= endDate) {
-      timePoints.push(new Date(currentDate))
-      currentDate.setDate(currentDate.getDate() + 1)
+    let currentTime = newStartTime
+    while (currentTime.isBefore(endTime) || currentTime.isSame(endTime)) {
+      timePoints.push(currentTime.valueOf())
+      currentTime = currentTime.add(1, 'day')
     }
   } else {
-    const minutes = startDate.getMinutes()
-    startDate.setMinutes(minutes < 30 ? 0 : 30, 0, 0)
+    const newStartTime = startTime
+      .minute(startTime.minute() < 30 ? 0 : 30)
+      .second(0)
+      .millisecond(0)
 
-    const currentDate = new Date(startDate)
-    while (currentDate <= endDate) {
-      timePoints.push(new Date(currentDate))
-      currentDate.setMinutes(currentDate.getMinutes() + 30)
+    let currentTime = newStartTime
+    while (currentTime.isBefore(endTime) || currentTime.isSame(endTime)) {
+      timePoints.push(currentTime.valueOf())
+      currentTime = currentTime.add(30, 'minute')
     }
   }
 
   return timePoints
 }
 
-function formatTimePoint(date: Date, dimension: string): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-
-  if (dimension === 'month') {
-    return `${year}-${month}`
-  } else if (dimension === 'day') {
-    const day = String(date.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-  } else {
-    const day = String(date.getDate()).padStart(2, '0')
-    const hour = String(date.getHours()).padStart(2, '0')
-    const minute = String(date.getMinutes()).padStart(2, '0')
-    return `${year}-${month}-${day} ${hour}:${minute}`
-  }
-}
-
 function mapRecordsToTimePoints(
-  timePoints: Date[],
+  timePoints: number[],
   records: PullStatistic[],
-  dimension: string,
-  timezoneOffset: number
+  dimension: Dimension
 ) {
-  const result: { time: string; count: number; delta: number }[] = []
-  let lastCount = null
+  const result: ReturnData[] = []
+  let lastCount: number | null = null
+  let recordIndex = 0
 
-  for (let i = 0; i < timePoints.length; i++) {
-    const timePoint = timePoints[i]
-    const timePointTimestamp = timePoint.getTime() - timezoneOffset * 60 * 1000
+  const maxTimeDiff = dimension === 'hour' ? minutesToMillisecond(15) : minutesToMillisecond(60)
 
+  for (const timePoint of timePoints) {
     let matchingRecord = null
-    for (let j = records.length - 1; j >= 0; j--) {
-      if (new Date(records[j].createdAt).getTime() <= timePointTimestamp) {
-        matchingRecord = records[j]
-        break
-      }
+    while (
+      recordIndex < records.length &&
+      new Date(records[recordIndex].createdAt).getTime() <= timePoint
+    ) {
+      recordIndex++
+    }
+
+    const nextRecordTimestamp =
+      recordIndex < records.length ? new Date(records[recordIndex].createdAt).getTime() : Infinity
+
+    if (nextRecordTimestamp - timePoint <= maxTimeDiff) {
+      matchingRecord = records[recordIndex]
+    } else if (recordIndex > 0) {
+      matchingRecord = records[recordIndex - 1]
     }
 
     const count = (matchingRecord ? matchingRecord.count : lastCount) as number
@@ -130,7 +140,7 @@ function mapRecordsToTimePoints(
       const delta = prevItem ? count - prevItem.count : 0
 
       result.push({
-        time: formatTimePoint(timePoint, dimension),
+        time: timePoint,
         count: count,
         delta: delta,
       })
@@ -143,10 +153,14 @@ function mapRecordsToTimePoints(
 }
 
 function formatTimestamp(from: unknown, to: unknown) {
-  const currentTime = Date.now()
-  const fromTimestamp = Number(from) > 0 && Number(from) <= currentTime ? Number(from) : 0
+  const currentTimestamp = Date.now()
+  const fromTimestamp = Number(from) > 0 && Number(from) <= currentTimestamp ? Number(from) : 0
   const toTimestamp =
-    Number(to) > fromTimestamp && Number(to) <= currentTime ? Number(to) : currentTime
+    Number(to) > fromTimestamp && Number(to) <= currentTimestamp ? Number(to) : currentTimestamp
 
   return { fromTimestamp, toTimestamp }
+}
+
+function minutesToMillisecond(minutes: number) {
+  return minutes * 60 * 1000
 }
