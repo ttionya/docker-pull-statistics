@@ -1,11 +1,11 @@
 services:
   app:
-    image: docker-pull-statistics:latest
-    container_name: docker-pull-statistics-app
+    image: ttionya/docker-pull-statistics:latest
+    container_name: docker-pull-statistics
     restart: unless-stopped
-    build:
-      context: .
-      dockerfile: Dockerfile
+    # environment:
+      # - ACCESS_TOKEN=
+      # - NUXT_APP_BASE_URL=/sub/
     ports:
       - '3000:3000'
     volumes:
