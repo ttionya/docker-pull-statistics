@@ -4,8 +4,9 @@ services:
     container_name: docker-pull-statistics
     restart: unless-stopped
     # environment:
-      # - ACCESS_TOKEN=
-      # - NUXT_APP_BASE_URL=/sub/
+    #  NUXT_APP_BASE_URL: /
+    #  ACCESS_TOKEN:
+    #  DATABASE_URI: 'sqlite:data/database.sqlite'
     ports:
       - '3000:3000'
     volumes:

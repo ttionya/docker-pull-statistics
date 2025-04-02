@@ -3,7 +3,9 @@ import 'sqlite3'
 
 const config = useRuntimeConfig()
 
-const sequelize = new Sequelize(config.databaseUri, {
+const databaseUri = process.env.DATABASE_URI || 'sqlite:data/database.sqlite'
+
+const sequelize = new Sequelize(databaseUri, {
   timezone: '+00:00',
   logging: !config.isProd ? console.log : false,
 
