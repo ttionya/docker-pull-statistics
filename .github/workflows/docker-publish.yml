@@ -1,0 +1,163 @@
+name: 'Docker Publish'
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - 'v*.*.*'
+  schedule:
+    - cron: '0 0 * * *'
+
+permissions:
+  packages: write
+
+jobs:
+  publish-stable:
+    name: Docker Publish
+
+    runs-on: ubuntu-latest
+
+    if: ${{ github.event_name != 'schedule' && startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-') }}
+
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      -
+        name: Prepare
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      -
+        name: Login to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      -
+        name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          labels: |
+            org.opencontainers.image.title=docker-pull-statistics
+            org.opencontainers.image.description=Docker Pull Statistics
+            org.opencontainers.image.authors=ttionya
+            org.opencontainers.image.version=${{ env.VERSION }}
+      -
+        name: Build and push
+        uses: docker/bake-action@v6
+        env:
+          VERSION: ${{ env.VERSION }}
+        with:
+          source: .
+          files: |
+            ./docker-bake.hcl
+            ${{ steps.meta.outputs.bake-file-labels }}
+          targets: image-stable
+          push: true
+
+  publish-beta:
+    name: Docker Publish Beta
+
+    runs-on: ubuntu-latest
+
+    if: ${{ github.event_name != 'schedule' && startsWith(github.ref, 'refs/tags/') && contains(github.ref, '-') }}
+
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      -
+        name: Prepare
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      -
+        name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          labels: |
+            org.opencontainers.image.title=docker-pull-statistics
+            org.opencontainers.image.description=Docker Pull Statistics
+            org.opencontainers.image.authors=ttionya
+            org.opencontainers.image.version=${{ env.VERSION }}
+      -
+        name: Build and push
+        uses: docker/bake-action@v6
+        env:
+          VERSION: ${{ env.VERSION }}
+        with:
+          source: .
+          files: |
+            ./docker-bake.hcl
+            ${{ steps.meta.outputs.bake-file-labels }}
+          targets: image-beta
+          push: true
+
+  publish-nightly:
+    name: Docker Publish Nightly
+
+    runs-on: ubuntu-latest
+
+    if: ${{ github.event_name == 'schedule' || (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/')) }}
+
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      -
+        name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          labels: |
+            org.opencontainers.image.title=docker-pull-statistics
+            org.opencontainers.image.description=Docker Pull Statistics
+            org.opencontainers.image.authors=ttionya
+            org.opencontainers.image.version=${{ github.sha }}
+      -
+        name: Build and push
+        uses: docker/bake-action@v6
+        with:
+          source: .
+          files: |
+            ./docker-bake.hcl
+            ${{ steps.meta.outputs.bake-file-labels }}
+          targets: image-nightly
+          push: true
