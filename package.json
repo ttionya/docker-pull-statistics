@@ -1,5 +1,6 @@
 {
   "name": "docker-pull-statistics",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -7,7 +8,6 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "import": "npx tsx scripts/import-csv.ts",
     "postinstall": "nuxt prepare",
     "prepare": "husky"
   },

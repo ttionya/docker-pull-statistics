@@ -1,5 +1,5 @@
 import dayjs from 'dayjs'
-import dayjsUtc from 'dayjs/plugin/utc'
+import dayjsUtc from 'dayjs/plugin/utc.js'
 import { StatisticsCountGetSchema } from '~~/server/constants/requestSchema'
 import { RepositoryService } from '~~/server/services/RepositoryService'
 import { PullStatisticsService } from '~~/server/services/PullStatisticsService'
