@@ -32,11 +32,16 @@ export default defineEventHandler(async (event) => {
   }
 
   // Get statistics records
-  const records = await new PullStatisticsService().findAllBetweenTimeRange({
+  const totalRecords = await new PullStatisticsService().findAllByRepositoryIdWithCache({
     repositoryId: queryRepository.id,
-    fromTimestamp,
-    toTimestamp,
   })
+
+  const records = totalRecords.slice(
+    totalRecords.findIndex((record) => new Date(record.createdAt).getTime() >= fromTimestamp),
+    totalRecords.findLastIndex(
+      (record) => new Date(record.createdAt).getTime() <= toTimestamp + getMaxTimeDiff(dimension)
+    ) + 1
+  )
 
   if (records.length === 0) {
     return returnData
@@ -44,7 +49,7 @@ export default defineEventHandler(async (event) => {
 
   // Generate time points based on dimension
   const timePoints = generateTimePoints(
-    records[0].createdAt.getTime(),
+    new Date(records[0].createdAt).getTime(),
     toTimestamp,
     dimension,
     timezoneOffset
@@ -113,7 +118,7 @@ function mapRecordsToTimePoints(
   let lastCount: number | null = null
   let recordIndex = 0
 
-  const maxTimeDiff = dimension === 'hour' ? minutesToMillisecond(15) : minutesToMillisecond(60)
+  const maxTimeDiff = getMaxTimeDiff(dimension)
 
   for (const timePoint of timePoints) {
     let matchingRecord = null
@@ -163,4 +168,8 @@ function formatTimestamp(from: unknown, to: unknown) {
 
 function minutesToMillisecond(minutes: number) {
   return minutes * 60 * 1000
+}
+
+function getMaxTimeDiff(dimension: Dimension) {
+  return dimension === 'hour' ? minutesToMillisecond(15) : minutesToMillisecond(60)
 }

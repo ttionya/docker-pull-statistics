@@ -42,9 +42,17 @@ async function processRepository(repository: Repository) {
       throw new Error(`Invalid pull count received: ${count}`)
     }
 
-    await new PullStatisticsService().create({ repositoryId: repository.id, count })
+    const repositoryStatsService = new RepositoryStatsService()
+    const pullStatisticsService = new PullStatisticsService()
 
-    await new RepositoryStatsService().updateStatsByRepositoryId(repository.id)
+    await pullStatisticsService.create({ repositoryId: repository.id, count })
+    await Promise.all([
+      repositoryStatsService.updateStatsByRepositoryId(repository.id),
+      pullStatisticsService.findAllByRepositoryIdWithCache({
+        repositoryId: repository.id,
+        forceUpdate: true,
+      }),
+    ])
 
     console.log(`Stored Docker Hub stats: ${count} pulls for ${name}`)
   } catch (error) {

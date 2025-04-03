@@ -1,6 +1,7 @@
 import { Op } from 'sequelize'
 import { BaseService } from './BaseService'
 import { PullStatistic } from '~~/server/models/PullStatistic'
+import cache from '~~/server/utils/cache'
 import type {
   PullStatisticCreationAttributes,
   PullStatisticBulkCreationAttributes,
@@ -29,6 +30,24 @@ export class PullStatisticsService extends BaseService {
       order: [['createdAt', 'ASC']],
       ...options,
     })
+  }
+
+  public async findAllByRepositoryIdWithCache(
+    data: { repositoryId: number; forceUpdate?: boolean },
+    options?: DModelOperationOptions
+  ) {
+    const cacheKey = `pull-statistics-total-${data.repositoryId}`
+    const cachedData = await cache.get<PullStatistic[]>(cacheKey)
+
+    if (cachedData && !data.forceUpdate) {
+      return cachedData
+    }
+
+    const findData = await this.findAllByRepositoryId(data.repositoryId, options)
+
+    await cache.set(cacheKey, findData)
+
+    return findData
   }
 
   public async findAllBetweenTimeRange(

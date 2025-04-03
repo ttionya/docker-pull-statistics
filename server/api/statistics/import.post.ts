@@ -44,16 +44,16 @@ export default defineEventHandler(async (event) => {
 
     for (const row of csvData) {
       const { time, count } = row
-      const intCount = parseInt(count)
+      const numCount = Number(count)
 
-      if (isNaN(intCount)) {
+      if (isNaN(numCount)) {
         console.log('Skipping row with invalid count:', count)
         statisticRows.invalid++
         continue
       }
 
-      const intTime = parseInt(time)
-      const date = new Date(isNaN(intTime) ? time : intTime)
+      const numTime = Number(time)
+      const date = new Date(isNaN(numTime) ? time : numTime)
       const minutes = date.getMinutes()
 
       // Keep only XX:00 and XX:30 entries
@@ -75,7 +75,7 @@ export default defineEventHandler(async (event) => {
 
       bulkCreateData.push({
         repositoryId,
-        count: intCount,
+        count: numCount,
         createdAt: date,
       })
       statisticRows.insert++
@@ -83,7 +83,13 @@ export default defineEventHandler(async (event) => {
 
     if (bulkCreateData.length > 0) {
       await pullStatisticsService.bulkCreate(bulkCreateData, { transaction })
-      await repositoryStatsService.updateStatsByRepositoryId(repositoryId, { transaction })
+      await Promise.all([
+        repositoryStatsService.updateStatsByRepositoryId(repositoryId, { transaction }),
+        pullStatisticsService.findAllByRepositoryIdWithCache(
+          { repositoryId, forceUpdate: true },
+          { transaction }
+        ),
+      ])
     }
   })
 
