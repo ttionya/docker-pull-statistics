@@ -17,6 +17,23 @@ export default defineNuxtConfig({
   },
   compatibilityDate: '2024-11-01',
 
+  app: {
+    head: {
+      title: 'Docker Hub Statistics',
+      meta: [
+        {
+          name: 'keywords',
+          content: 'docker, pull statistics, docker images, docker pull, docker pull count',
+        },
+        {
+          name: 'description',
+          content:
+            'Docker Pull Statistics is a tool for tracking and analyzing Docker image pull counts.',
+        },
+      ],
+    },
+  },
+
   nitro: {
     replace: {
       // https://github.com/nitrojs/nitro/issues/3071
