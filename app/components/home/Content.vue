@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import dayjs from 'dayjs'
 import { isNumber } from '~/utils/typeCheck'
+import type { Ref } from 'vue'
 import type { Repository } from '~~/types/api/repositories'
 
 const { repositories } = defineProps<{
   repositories: Repository[]
 }>()
 
-const isMobile = inject<boolean>('isMobile')
+const isMobile = inject<Ref<boolean>>('isMobile')!
 
 function goStatisticsPage(repository: Repository) {
   navigateTo(`/statistics/${repository.namespace}/${repository.repository}`)

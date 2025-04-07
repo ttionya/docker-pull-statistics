@@ -1,3 +1,11 @@
+<script setup lang="ts">
+import type { RepositoriesGetRsp } from '~~/types/api/repositories'
+
+const { data: repositoriesData } = useFetch<RepositoriesGetRsp>('/api/repositories')
+
+const repositories = computed(() => repositoriesData.value?.repositories || [])
+</script>
+
 <template>
   <div class="page-container">
     <ClientOnly>
@@ -7,14 +15,6 @@
     </ClientOnly>
   </div>
 </template>
-
-<script setup lang="ts">
-import type { RepositoriesGetRsp } from '~~/types/api/repositories'
-
-const { data: repositoriesData } = useFetch<RepositoriesGetRsp>('/api/repositories')
-
-const repositories = computed(() => repositoriesData.value?.repositories || [])
-</script>
 
 <style lang="scss" scoped>
 .page-container {
