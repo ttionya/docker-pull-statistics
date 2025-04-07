@@ -3,12 +3,13 @@ import * as echarts from 'echarts'
 import { useEventListener } from '@vueuse/core'
 import dayjs from 'dayjs'
 import type { Ref } from 'vue'
+import type { StatisticsGetReq, StatisticsGetRes } from '~~/types/api/statistics'
 
 const isMobile = inject<Ref<boolean>>('isMobile')!
 const route = useRoute()
 const repositoryName = `${route.params.namespace as string}/${route.params.repository as string}`
 const chartHeight = ref(0)
-const dimension = ref<'month' | 'day' | 'hour'>('day')
+const dimension = ref<StatisticsGetReq['dimension']>('day')
 const dateRange = ref<[Date, Date] | []>([])
 const loading = ref(false)
 const chartControlsRef = ref<HTMLElement | null>(null)
@@ -32,26 +33,26 @@ function initChart() {
 }
 
 async function loadData() {
-  if (!chart || !dateRange.value) return
+  if (!chart) return
 
   loading.value = true
 
   try {
-    const startDate = dateRange.value[0] ? dateRange.value[0].getTime() : undefined
-    const endDate = dateRange.value[1] ? dateRange.value[1].getTime() : undefined
+    const range = dateRange.value || []
+    const startDate = range[0] ? range[0].getTime() : undefined
+    const endDate = range[1] ? range[1].getTime() : undefined
 
-    const { data } = await $fetch(`/api/statistics/count`, {
-      query: {
-        repository: repositoryName,
-        from: startDate,
-        to: endDate,
-        dimension: dimension.value,
-        timezoneOffset: new Date().getTimezoneOffset(),
-      },
-    })
+    const query: StatisticsGetReq = {
+      repository: repositoryName,
+      from: startDate,
+      to: endDate,
+      dimension: dimension.value,
+      timezoneOffset: new Date().getTimezoneOffset(),
+    }
 
-    const chartData = data || []
-    updateChart(chartData)
+    const { data } = await $fetch<StatisticsGetRes>(`/api/statistics/count`, { query })
+
+    updateChart(data || [])
   } catch (error) {
     console.error('Failed to fetch chart data:', error)
     ElMessage.error('Failed to load chart data')
@@ -60,7 +61,7 @@ async function loadData() {
   }
 }
 
-function updateChart(data: { time: number; count: number; delta: number }[]) {
+function updateChart(data: StatisticsGetRes['data']) {
   if (!chart) return
 
   const times = data.map((item) => {
