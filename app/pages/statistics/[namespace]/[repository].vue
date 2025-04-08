@@ -2,8 +2,11 @@
 import * as echarts from 'echarts'
 import { useEventListener } from '@vueuse/core'
 import dayjs from 'dayjs'
+import dayjsUtc from 'dayjs/plugin/utc.js'
 import type { Ref } from 'vue'
 import type { StatisticsCountGetReq, StatisticsCountGetRes } from '~~/types/api/statistics'
+
+dayjs.extend(dayjsUtc)
 
 const isMobile = inject<Ref<boolean>>('isMobile')!
 const route = useRoute()
@@ -12,6 +15,7 @@ const chartHeight = ref(0)
 const dimension = ref<StatisticsCountGetReq['dimension']>('day')
 const dateRange = ref<[Date, Date] | []>([])
 const loading = ref(false)
+const resTimezoneOffset = ref(0)
 const chartControlsRef = ref<HTMLElement | null>(null)
 const chartRef = ref<HTMLElement | null>(null)
 let chart: echarts.ECharts | null = null
@@ -50,7 +54,11 @@ async function loadData() {
       timezoneOffset: new Date().getTimezoneOffset(),
     }
 
-    const { data } = await $fetch<StatisticsCountGetRes>(`/api/statistics/count`, { query })
+    const { data, timezoneOffset } = await $fetch<StatisticsCountGetRes>(`/api/statistics/count`, {
+      query,
+    })
+
+    resTimezoneOffset.value = timezoneOffset
 
     updateChart(data || [])
   } catch (error) {
@@ -76,7 +84,9 @@ function updateChart(data: StatisticsCountGetRes['data']) {
         break
     }
 
-    return dayjs(item.time).format(format)
+    return dayjs(item.time)
+      .utcOffset(resTimezoneOffset.value * -1)
+      .format(format)
   })
   const counts = data.map((item) => item.count)
   const deltas = data.map((item) => item.delta)

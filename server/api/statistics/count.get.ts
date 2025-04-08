@@ -1,5 +1,6 @@
 import dayjs from 'dayjs'
 import dayjsUtc from 'dayjs/plugin/utc.js'
+import { validTimezoneOffset } from '~~/server/constants/timezone'
 import { StatisticsCountGetSchema } from '~~/server/constants/requestSchema'
 import { RepositoryService } from '~~/server/services/RepositoryService'
 import { PullStatisticsService } from '~~/server/services/PullStatisticsService'
@@ -24,14 +25,15 @@ export default defineEventHandler(async (event) => {
     from,
     to,
     dimension = 'day',
-    timezoneOffset = 0,
+    timezoneOffset: _timezoneOffset = 0,
   } = await getValidatedQuery(event, StatisticsCountGetSchema.parse)
   const { fromTimestamp, toTimestamp } = formatTimestamp(from, to)
+  const timezoneOffset = formatTimezoneOffset(_timezoneOffset)
 
   const queryRepository = await new RepositoryService().findByName(repository)
 
   if (!queryRepository) {
-    return serializeRes()
+    return serializeRes([], timezoneOffset)
   }
 
   // Get formatted data from cache
@@ -46,7 +48,7 @@ export default defineEventHandler(async (event) => {
         (record) => new Date(record.time).getTime() <= toTimestamp + getMaxTimeDiff(dimension)
       ) + 1
     )
-    return serializeRes(records)
+    return serializeRes(records, timezoneOffset)
   }
 
   // Get statistics records
@@ -62,7 +64,7 @@ export default defineEventHandler(async (event) => {
   )
 
   if (records.length === 0) {
-    return serializeRes()
+    return serializeRes([], timezoneOffset)
   }
 
   // Generate time points based on dimension
@@ -85,12 +87,13 @@ export default defineEventHandler(async (event) => {
     await cache.set<CachedData>(cacheKey, { data: result }, getMillisecondUntilNextHalfHour())
   }
 
-  return serializeRes(result)
+  return serializeRes(result, timezoneOffset)
 })
 
-function serializeRes(data: StatisticsCount[] = []): StatisticsCountGetRes {
+function serializeRes(data: StatisticsCount[], timezoneOffset: number): StatisticsCountGetRes {
   return {
     data,
+    timezoneOffset,
   }
 }
 
@@ -202,11 +205,15 @@ function formatTimestamp(from: unknown, to: unknown) {
   return { fromTimestamp, toTimestamp }
 }
 
+function formatTimezoneOffset(timezoneOffset: number) {
+  return validTimezoneOffset.includes(timezoneOffset) ? timezoneOffset : 0
+}
+
 function minutesToMillisecond(minutes: number) {
   return minutes * 60 * 1000
 }
 
-function getMillisecondUntilNextHalfHour(): number {
+function getMillisecondUntilNextHalfHour() {
   const now = dayjs()
   const minutes = now.minute()
 

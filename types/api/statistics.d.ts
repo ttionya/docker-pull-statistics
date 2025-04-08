@@ -22,6 +22,7 @@ export interface StatisticsCountGetReq {
  */
 export interface StatisticsCountGetRes {
   data: StatisticsCount[]
+  timezoneOffset: number
 }
 
 /**
