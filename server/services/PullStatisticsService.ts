@@ -1,7 +1,7 @@
 import { Op } from 'sequelize'
 import { BaseService } from './BaseService'
 import { PullStatistic } from '~~/server/models/PullStatistic'
-import cache from '~~/server/utils/cache'
+import cache, { getPullStatisticsRawDataCacheKey } from '~~/server/utils/cache'
 import type {
   PullStatisticCreationAttributes,
   PullStatisticBulkCreationAttributes,
@@ -36,7 +36,7 @@ export class PullStatisticsService extends BaseService {
     data: { repositoryId: number; forceUpdate?: boolean },
     options?: DModelOperationOptions
   ) {
-    const cacheKey = `pull-statistics-total-${data.repositoryId}`
+    const cacheKey = getPullStatisticsRawDataCacheKey(data.repositoryId)
     const cachedData = await cache.get<PullStatistic[]>(cacheKey)
 
     if (cachedData && !data.forceUpdate) {

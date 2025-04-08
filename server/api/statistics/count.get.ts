@@ -3,10 +3,20 @@ import dayjsUtc from 'dayjs/plugin/utc.js'
 import { StatisticsCountGetSchema } from '~~/server/constants/requestSchema'
 import { RepositoryService } from '~~/server/services/RepositoryService'
 import { PullStatisticsService } from '~~/server/services/PullStatisticsService'
+import cache, { getPullStatisticsCountDataCacheKey } from '~~/server/utils/cache'
 import type { PullStatistic } from '~~/server/models/PullStatistic'
 import type { StatisticsCountGetRes, StatisticsCount, Dimension } from '~~/types/api/statistics'
 
 dayjs.extend(dayjsUtc)
+
+interface CachedData {
+  data: StatisticsCount[]
+}
+
+/**
+ * Unknown specific time, get the year Docker was first released
+ */
+const dockerHubOnlineTimestamp = new Date('2013-01-01T00:00:00Z').getTime()
 
 export default defineEventHandler(async (event) => {
   const {
@@ -22,6 +32,21 @@ export default defineEventHandler(async (event) => {
 
   if (!queryRepository) {
     return serializeRes()
+  }
+
+  // Get formatted data from cache
+  const cacheKey = getPullStatisticsCountDataCacheKey(queryRepository.id, dimension, timezoneOffset)
+  const cachedData = await cache.get<CachedData>(cacheKey)
+  const { data: cachedRecords } = cachedData || {}
+
+  if (cachedRecords) {
+    const records = cachedRecords.slice(
+      cachedRecords.findIndex((record) => new Date(record.time).getTime() >= fromTimestamp),
+      cachedRecords.findLastIndex(
+        (record) => new Date(record.time).getTime() <= toTimestamp + getMaxTimeDiff(dimension)
+      ) + 1
+    )
+    return serializeRes(records)
   }
 
   // Get statistics records
@@ -50,6 +75,15 @@ export default defineEventHandler(async (event) => {
 
   // Map records to the generated time points
   const result = mapRecordsToTimePoints(timePoints, records, dimension)
+
+  // Set data to cache
+  if (
+    // full time range
+    totalRecords[0].createdAt === records[0].createdAt &&
+    totalRecords[totalRecords.length - 1].createdAt === records[records.length - 1].createdAt
+  ) {
+    await cache.set<CachedData>(cacheKey, { data: result }, getMillisecondUntilNextHalfHour())
+  }
 
   return serializeRes(result)
 })
@@ -158,7 +192,10 @@ function mapRecordsToTimePoints(
 
 function formatTimestamp(from: unknown, to: unknown) {
   const currentTimestamp = Date.now()
-  const fromTimestamp = Number(from) > 0 && Number(from) <= currentTimestamp ? Number(from) : 0
+  const fromTimestamp =
+    Number(from) > dockerHubOnlineTimestamp && Number(from) <= currentTimestamp
+      ? Number(from)
+      : dockerHubOnlineTimestamp
   const toTimestamp =
     Number(to) > fromTimestamp && Number(to) <= currentTimestamp ? Number(to) : currentTimestamp
 
@@ -167,6 +204,20 @@ function formatTimestamp(from: unknown, to: unknown) {
 
 function minutesToMillisecond(minutes: number) {
   return minutes * 60 * 1000
+}
+
+function getMillisecondUntilNextHalfHour(): number {
+  const now = dayjs()
+  const minutes = now.minute()
+
+  let target
+  if (minutes < 30) {
+    target = now.minute(30).second(0).millisecond(0)
+  } else {
+    target = now.add(1, 'hour').minute(0).second(0).millisecond(0)
+  }
+
+  return target.valueOf() - now.valueOf()
 }
 
 function getMaxTimeDiff(dimension: Dimension) {
