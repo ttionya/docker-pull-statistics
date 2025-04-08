@@ -5,7 +5,10 @@ export interface Repository {
   name: string
   createdAt: string
   updatedAt: string
-  repositoryStats: Nullable<{
+}
+
+export interface RepositoryWithStats extends Repository {
+  repositoryStats: {
     id: number
     repositoryId: number
     latestCount: number | null
@@ -14,9 +17,25 @@ export interface Repository {
     previousUpdatedAt: string | null
     createdAt: string
     updatedAt: string
-  }>
+  } | null
 }
 
+/**
+ * api/statistics/count.get.ts Response
+ */
 export interface RepositoriesGetRsp {
-  repositories: Repository[]
+  repositories: RepositoryWithStats[]
 }
+
+/**
+ * api/repositories/index.post.ts Request
+ */
+export interface RepositoriesPostReq {
+  repository: string
+}
+
+/**
+ * api/repositories/index.post.ts Response
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface RepositoriesPostRsp extends Repository {}

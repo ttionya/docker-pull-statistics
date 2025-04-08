@@ -3,13 +3,13 @@ import * as echarts from 'echarts'
 import { useEventListener } from '@vueuse/core'
 import dayjs from 'dayjs'
 import type { Ref } from 'vue'
-import type { StatisticsGetReq, StatisticsGetRes } from '~~/types/api/statistics'
+import type { StatisticsCountGetReq, StatisticsCountGetRes } from '~~/types/api/statistics'
 
 const isMobile = inject<Ref<boolean>>('isMobile')!
 const route = useRoute()
 const repositoryName = `${route.params.namespace as string}/${route.params.repository as string}`
 const chartHeight = ref(0)
-const dimension = ref<StatisticsGetReq['dimension']>('day')
+const dimension = ref<StatisticsCountGetReq['dimension']>('day')
 const dateRange = ref<[Date, Date] | []>([])
 const loading = ref(false)
 const chartControlsRef = ref<HTMLElement | null>(null)
@@ -42,7 +42,7 @@ async function loadData() {
     const startDate = range[0] ? range[0].getTime() : undefined
     const endDate = range[1] ? range[1].getTime() : undefined
 
-    const query: StatisticsGetReq = {
+    const query: StatisticsCountGetReq = {
       repository: repositoryName,
       from: startDate,
       to: endDate,
@@ -50,7 +50,7 @@ async function loadData() {
       timezoneOffset: new Date().getTimezoneOffset(),
     }
 
-    const { data } = await $fetch<StatisticsGetRes>(`/api/statistics/count`, { query })
+    const { data } = await $fetch<StatisticsCountGetRes>(`/api/statistics/count`, { query })
 
     updateChart(data || [])
   } catch (error) {
@@ -61,7 +61,7 @@ async function loadData() {
   }
 }
 
-function updateChart(data: StatisticsGetRes['data']) {
+function updateChart(data: StatisticsCountGetRes['data']) {
   if (!chart) return
 
   const times = data.map((item) => {

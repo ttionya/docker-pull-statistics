@@ -4,16 +4,10 @@ import { StatisticsCountGetSchema } from '~~/server/constants/requestSchema'
 import { RepositoryService } from '~~/server/services/RepositoryService'
 import { PullStatisticsService } from '~~/server/services/PullStatisticsService'
 import type { PullStatistic } from '~~/server/models/PullStatistic'
-
-interface ReturnData {
-  time: number
-  count: number
-  delta: number
-}
-
-type Dimension = 'month' | 'day' | 'hour'
+import type { StatisticsCountGetRes, StatisticsCount, Dimension } from '~~/types/api/statistics'
 
 dayjs.extend(dayjsUtc)
+
 export default defineEventHandler(async (event) => {
   const {
     repository,
@@ -23,12 +17,11 @@ export default defineEventHandler(async (event) => {
     timezoneOffset = 0,
   } = await getValidatedQuery(event, StatisticsCountGetSchema.parse)
   const { fromTimestamp, toTimestamp } = formatTimestamp(from, to)
-  const returnData: { data: ReturnData[] } = { data: [] }
 
   const queryRepository = await new RepositoryService().findByName(repository)
 
   if (!queryRepository) {
-    return returnData
+    return serializeRes()
   }
 
   // Get statistics records
@@ -44,7 +37,7 @@ export default defineEventHandler(async (event) => {
   )
 
   if (records.length === 0) {
-    return returnData
+    return serializeRes()
   }
 
   // Generate time points based on dimension
@@ -56,10 +49,16 @@ export default defineEventHandler(async (event) => {
   )
 
   // Map records to the generated time points
-  returnData.data = mapRecordsToTimePoints(timePoints, records, dimension)
+  const result = mapRecordsToTimePoints(timePoints, records, dimension)
 
-  return returnData
+  return serializeRes(result)
 })
+
+function serializeRes(data: StatisticsCount[] = []): StatisticsCountGetRes {
+  return {
+    data,
+  }
+}
 
 function generateTimePoints(
   fromTimestamp: number,
@@ -114,7 +113,7 @@ function mapRecordsToTimePoints(
   records: PullStatistic[],
   dimension: Dimension
 ) {
-  const result: ReturnData[] = []
+  const result: StatisticsCount[] = []
   let lastCount: number | null = null
   let recordIndex = 0
 

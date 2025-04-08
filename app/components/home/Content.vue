@@ -2,15 +2,15 @@
 import dayjs from 'dayjs'
 import { isNumber } from '~/utils/typeCheck'
 import type { Ref } from 'vue'
-import type { Repository } from '~~/types/api/repositories'
+import type { RepositoryWithStats } from '~~/types/api/repositories'
 
 const { repositories } = defineProps<{
-  repositories: Repository[]
+  repositories: RepositoryWithStats[]
 }>()
 
 const isMobile = inject<Ref<boolean>>('isMobile')!
 
-function goStatisticsPage(repository: Repository) {
+function goStatisticsPage(repository: RepositoryWithStats) {
   navigateTo(`/statistics/${repository.namespace}/${repository.repository}`)
 }
 
@@ -51,7 +51,7 @@ function formatDate(date?: string | null): string {
               <sup class="sup">
                 +{{
                   formatNumber(
-                    row.repositoryStats?.latestCount - row.repositoryStats?.previousCount
+                    row.repositoryStats!.latestCount! - row.repositoryStats!.previousCount!
                   )
                 }}
               </sup>
@@ -88,8 +88,8 @@ function formatDate(date?: string | null): string {
               <sup class="sup">
                 +{{
                   formatNumber(
-                    repository.repositoryStats?.latestCount -
-                      repository.repositoryStats?.previousCount
+                    repository.repositoryStats!.latestCount! -
+                      repository.repositoryStats!.previousCount!
                   )
                 }}
               </sup>

@@ -6,6 +6,7 @@ import { PullStatisticsService } from '~~/server/services/PullStatisticsService'
 import { requireAuth } from '~~/server/utils/authorization'
 import { readValidatedFormData } from '~~/server/utils/formDataValidation'
 import type { PullStatisticBulkCreationAttributes } from '~~/server/models/PullStatistic'
+import type { StatisticsImportPostRes } from '~~/types/api/statistics'
 
 export default defineEventHandler(async (event) => {
   requireAuth(event)
@@ -95,12 +96,20 @@ export default defineEventHandler(async (event) => {
 
   console.log('Import statistics:', statisticRows)
 
-  return {
-    repository: name,
-    repositoryId: repositoryId!,
-    rows: statisticRows,
-  }
+  return serializeRes(name, repositoryId!, statisticRows)
 })
+
+function serializeRes(
+  repository: string,
+  repositoryId: number,
+  rows: StatisticsImportPostRes['rows']
+): StatisticsImportPostRes {
+  return {
+    repository,
+    repositoryId,
+    rows,
+  }
+}
 
 function getValidatedCsvData(csvBuffer: Buffer) {
   const csvContent = csvBuffer.toString('utf-8')
