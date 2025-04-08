@@ -114,7 +114,7 @@ function updateChart(data: StatisticsCountGetRes['data']) {
     },
     xAxis: {
       type: 'category',
-      boundaryGap: false,
+      boundaryGap: true,
       data: times,
     },
     yAxis: [
