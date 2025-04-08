@@ -50,6 +50,16 @@ export default defineNuxtConfig({
         },
       },
     },
+    $server: {
+      build: {
+        rollupOptions: {
+          output: {
+            // https://github.com/nuxt/nuxt/issues/31352
+            preserveModules: false,
+          },
+        },
+      },
+    },
   },
 
   cron: {
